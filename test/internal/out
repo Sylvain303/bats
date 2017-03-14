@@ -1,0 +1,10 @@
+#!/bin/bash
+
+tmp=tmp-bats-preprocess
+BPP=../../libexec/bats-preprocess
+
+test_preprocess_single() { bats_test_begin "preprocess single" 6; 
+  cat $BATS_TEST_FILENAME | $BPP > $tmp
+  diff -q $tmp out
+}
+bats_test_function test_preprocess_single
