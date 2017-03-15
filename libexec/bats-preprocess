@@ -29,24 +29,31 @@ encode_name() {
   echo "$result"
 }
 
-tests=()
-index=0
-pattern='^ *@test  *([^ ].*)  *\{ *(.*)$'
+main() {
+  tests=()
+  index=0
+  pattern='^ *@test  *([^ ].*)  *\{ *(.*)$'
 
-while IFS= read -r line; do
-  let index+=1
-  if [[ "$line" =~ $pattern ]]; then
-    quoted_name="${BASH_REMATCH[1]}"
-    body="${BASH_REMATCH[2]}"
-    name="$(eval echo "$quoted_name")"
-    encoded_name="$(encode_name "$name")"
-    tests["${#tests[@]}"]="$encoded_name"
-    echo "${encoded_name}() { bats_test_begin ${quoted_name} ${index}; ${body}"
-  else
-    printf "%s\n" "$line"
-  fi
-done
+  while IFS= read -r line; do
+    let index+=1
+    if [[ "$line" =~ $pattern ]]; then
+      quoted_name="${BASH_REMATCH[1]}"
+      body="${BASH_REMATCH[2]}"
+      name="$(eval echo "$quoted_name")"
+      encoded_name="$(encode_name "$name")"
+      tests["${#tests[@]}"]="$encoded_name"
+      echo "${encoded_name}() { bats_test_begin ${quoted_name} ${index}; ${body}"
+    else
+      printf "%s\n" "$line"
+    fi
+  done
 
-for test_name in "${tests[@]}"; do
-  echo "bats_test_function ${test_name}"
-done
+  for test_name in "${tests[@]}"; do
+    echo "bats_test_function ${test_name}"
+  done
+}
+
+[[ $0 != "$BASH_SOURCE" ]] && sourced=1 || sourced=0
+if [[ $sourced -eq 0  ]] ; then 
+   main "$@"
+fi
