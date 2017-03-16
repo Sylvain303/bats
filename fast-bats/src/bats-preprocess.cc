@@ -3,6 +3,8 @@
 #include <cctype>
 #include <cstdio>
 #include <vector>
+#include <regex>
+#include <sstream>
 
 using namespace std;
 
@@ -51,10 +53,20 @@ bool is_utf8(const char * string)
     return true;
 }
 
-string encode_name(string name) {
+enum type_param {
+  in_string,
+  none
+};
+
+struct param_func {
+  type_param type_p;
+  void *p;
+};
+
+string encode_name(const param_func &p) {
   string result("test_");
 
-	const char *c_str = name.c_str();
+	const char *c_str = ((string *)p.p)->c_str();
   char buf[5];
 
 	while (*c_str) {
@@ -73,20 +85,71 @@ string encode_name(string name) {
   return result;
 }
 
+string encode_name(const string &s) {
+  return encode_name(param_func({in_string, (void *) &s}));
+}
+
+string bash_eval(const string &bash_string) {
+  return bash_string;
+}
+
+string preprocess(const param_func &p) {
+  vector<string> tests;
+  int index(0);
+
+  regex pattern("^ *@test  *([^ ].*)  *\\{ *(.*)$");
+  smatch m;
+
+  string line, quoted_name, name, encoded_name, body;
+  stringstream output;
+
+
+  while(getline(cin, line)) {
+    ++index;
+
+    if(regex_match(line, m, pattern)) {
+      quoted_name = m[0];
+      body = m[1];
+      name = bash_eval(quoted_name);
+      encoded_name = encode_name(name);
+
+      tests.push_back(encoded_name);
+
+      output <<
+        encoded_name << "() { bats_test_begin " <<
+        quoted_name << " " << index << "; " << body
+        ;
+    } else {
+      output << line;
+		}
+
+    output << "\n";
+  }
+
+  for(auto test_name : tests) {
+    output << "bats_test_function " << test_name << "\n";
+  }
+
+  return output.str();
+}
+
 struct Callable_func {
   string func_name;
-  string (*func_ptr)(string);
+  string (*func_ptr)(const param_func&);
 };
 
 vector<Callable_func> callable;
 
-
 void init_callable()
 {
   Callable_func f;
+
   f.func_name = "encode_name";
   f.func_ptr = encode_name;
+  callable.push_back(f);
 
+  f.func_name = "preprocess";
+  f.func_ptr = preprocess;
   callable.push_back(f);
 }
 
@@ -104,7 +167,7 @@ int main(int argc, char **argv)
 
     for(auto f : callable) {
       if(f.func_name == argv[1]) {
-        cout << f.func_ptr(param) << endl;
+        cout << f.func_ptr(param_func({in_string, (void*) &param})) << endl;
         found = true;
         break;
       }
