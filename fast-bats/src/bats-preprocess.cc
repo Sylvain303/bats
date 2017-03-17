@@ -66,20 +66,20 @@ struct param_func {
 string encode_name(const param_func &p) {
   string result("test_");
 
-	const char *c_str = ((string *)p.p)->c_str();
+  const char *c = ((string *)p.p)->c_str();
   char buf[5];
 
-	while (*c_str) {
-    if(*c_str == ' ') {
+  while (*c) {
+    if(*c == ' ' or *c == '_') {
       result += "_";
-    } else if(ispunct(*c_str)) {
-      sprintf(buf, "-%02x", *c_str);
+    } else if(ispunct(*c)) {
+      sprintf(buf, "-%02x", *c);
       result += buf;
     } else {
-      result += *c_str;
+      result += *c;
     }
 
-		++c_str;
+    ++c;
   }
 
   return result;
@@ -89,8 +89,12 @@ string encode_name(const string &s) {
   return encode_name(param_func({in_string, (void *) &s}));
 }
 
+// fake bash eval behavior, we simply remove quote (we suppose quoted string)
 string bash_eval(const string &bash_string) {
-  return bash_string;
+  // copy all but first and last char
+  string result(bash_string, 1, bash_string.size() -2);
+
+  return result;
 }
 
 string preprocess(const param_func &p) {
@@ -108,8 +112,8 @@ string preprocess(const param_func &p) {
     ++index;
 
     if(regex_match(line, m, pattern)) {
-      quoted_name = m[0];
-      body = m[1];
+      quoted_name = m[1];
+      body = m[2];
       name = bash_eval(quoted_name);
       encoded_name = encode_name(name);
 
@@ -121,7 +125,7 @@ string preprocess(const param_func &p) {
         ;
     } else {
       output << line;
-		}
+    }
 
     output << "\n";
   }
@@ -133,24 +137,35 @@ string preprocess(const param_func &p) {
   return output.str();
 }
 
-struct Callable_func {
+// Callable_func is a wrapper object to allow our function to
+// be called from command line with a string. We also allow to
+// control the print of an extra new_line.
+typedef string (*ptr_param_func)(const param_func&);
+class Callable_func {
+public:
   string func_name;
-  string (*func_ptr)(const param_func&);
+  ptr_param_func func_ptr;
+  bool new_line;
+
+  Callable_func(const string&, ptr_param_func, bool);
 };
 
+Callable_func::Callable_func(const string &func_name,
+    ptr_param_func func_ptr,
+    bool new_line = true) {
+  this->func_name = func_name;
+  this->func_ptr = func_ptr;
+  this->new_line = new_line;
+}
+
+// our table of function
 vector<Callable_func> callable;
 
+// fill our list of function
 void init_callable()
 {
-  Callable_func f;
-
-  f.func_name = "encode_name";
-  f.func_ptr = encode_name;
-  callable.push_back(f);
-
-  f.func_name = "preprocess";
-  f.func_ptr = preprocess;
-  callable.push_back(f);
+  callable.push_back(Callable_func("encode_name", encode_name));
+  callable.push_back(Callable_func("preprocess", preprocess, false));
 }
 
 int main(int argc, char **argv)
@@ -167,7 +182,10 @@ int main(int argc, char **argv)
 
     for(auto f : callable) {
       if(f.func_name == argv[1]) {
-        cout << f.func_ptr(param_func({in_string, (void*) &param})) << endl;
+        cout << f.func_ptr(param_func({in_string, (void*) &param}));
+        // by default we put a new_line here, for better function call display
+        if(f.new_line)
+          cout << endl;
         found = true;
         break;
       }
