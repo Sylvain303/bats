@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# preprocess bats source file STDIN into a bash runable script STDOUT
+# unittest: OK ../test/internal/bats-preprocess_unit.bats
+# fonctionnal test: ../test/internal/bats-preprocess.bats
+#
+# Usage: ./bats-preprocess < INUPT.bats > OUTPUT.sh
 set -e
 
 encode_name() {

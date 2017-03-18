@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # internal function unittest
 source $BATS_TEST_DIRNAME/../../libexec/bats-preprocess
 
