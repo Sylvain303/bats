@@ -1,35 +1,8 @@
 #!/usr/bin/env bash
-set -e
-set -E
-set -T
 
-MYBATS_COUNT_ONLY=""
-if [ "$1" = "-c" ]; then
-  MYBATS_COUNT_ONLY=1
-  shift
-fi
 
-MYBATS_EXTENDED_SYNTAX=""
-if [ "$1" = "-x" ]; then
-  MYBATS_EXTENDED_SYNTAX="$1"
-  shift
-fi
-
-MYBATS_TEST_FILENAME="$1"
-if [ -z "$MYBATS_TEST_FILENAME" ]; then
-  echo "usage: bats-exec <filename>" >&2
-  exit 1
-elif [ ! -f "$MYBATS_TEST_FILENAME" ]; then
-  echo "bats: $MYBATS_TEST_FILENAME does not exist" >&2
-  exit 1
-else
-  shift
-fi
-
-MYBATS_TEST_DIRNAME="$(dirname "$MYBATS_TEST_FILENAME")"
-MYBATS_TEST_NAMES=()
-
-load() {
+# ---------------------------------------------------------- healper
+myload() {
   local name="$1"
   local filename
 
@@ -79,6 +52,9 @@ myskip() {
   exit 0
 }
 
+# -------------------------------------------------- bats internal
+# store function's description string in MYBATS_TEST_DESCRIPTION
+# call mysetup()
 mybats_test_begin() {
   MYBATS_TEST_DESCRIPTION="$1"
   if [ -n "$MYBATS_EXTENDED_SYNTAX" ]; then
@@ -87,6 +63,8 @@ mybats_test_begin() {
   mysetup
 }
 
+# append test_name to MYBATS_TEST_NAMES[] array
+# MYBATS_TEST_NAMES[] is initialized in mybats_init()
 mybats_test_function() {
   local test_name="$1"
   MYBATS_TEST_NAMES["${#MYBATS_TEST_NAMES[@]}"]="$test_name"
@@ -301,15 +279,47 @@ mybats_perform_test() {
   fi
 }
 
-if [ -z "$TMPDIR" ]; then
-  MYBATS_TMPDIR="/tmp"
-else
-  MYBATS_TMPDIR="${TMPDIR%/}"
-fi
+mybats_init() {
+  set -e
+  set -E
+  set -T
 
-MYBATS_TMPNAME="$MYBATS_TMPDIR/bats.$$"
-MYBATS_PARENT_TMPNAME="$MYBATS_TMPDIR/bats.$PPID"
-MYBATS_OUT="${MYBATS_TMPNAME}.out"
+  MYBATS_COUNT_ONLY=""
+  if [ "$1" = "-c" ]; then
+    MYBATS_COUNT_ONLY=1
+    shift
+  fi
+
+  MYBATS_EXTENDED_SYNTAX=""
+  if [ "$1" = "-x" ]; then
+    MYBATS_EXTENDED_SYNTAX="$1"
+    shift
+  fi
+
+  MYBATS_TEST_FILENAME="$1"
+  if [ -z "$MYBATS_TEST_FILENAME" ]; then
+    echo "usage: bats-exec <filename>" >&2
+    exit 1
+  elif [ ! -f "$MYBATS_TEST_FILENAME" ]; then
+    echo "bats: $MYBATS_TEST_FILENAME does not exist" >&2
+    exit 1
+  else
+    shift
+  fi
+
+  MYBATS_TEST_DIRNAME="$(dirname "$MYBATS_TEST_FILENAME")"
+  MYBATS_TEST_NAMES=()
+
+  if [ -z "$TMPDIR" ]; then
+    MYBATS_TMPDIR="/tmp"
+  else
+    MYBATS_TMPDIR="${TMPDIR%/}"
+  fi
+
+  MYBATS_TMPNAME="$MYBATS_TMPDIR/bats.$$"
+  MYBATS_PARENT_TMPNAME="$MYBATS_TMPDIR/bats.$PPID"
+  MYBATS_OUT="${MYBATS_TMPNAME}.out"
+}
 
 mybats_preprocess_source() {
   MYBATS_TEST_SOURCE="${MYBATS_TMPNAME}.src"
