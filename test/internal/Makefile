@@ -12,4 +12,5 @@ mybats-exec-test: ${BATS_EXEC}
 	    -e 's/\<skip\>/myskip/g' \
 	    -e 's/\<run\>/myrun/g' \
 	    -e 's/\<teardown\>/myteardown/g' \
+	    -e 's/\<load\>/myload/g' \
 	      ${BATS_EXEC} > $@

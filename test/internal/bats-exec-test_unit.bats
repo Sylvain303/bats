@@ -1,28 +1,35 @@
 #!/bin/bash
 
 # already sourced we are excuting ourself
-# fake resourcing
-sed -e 's/bats_/mybats_/g' \
-    -e 's/BATS_/MYBATS_/g' \
-    -e 's/\<setup\>/mysetup/g' \
-    -e 's/\<skip\>/myskip/g' \
-    -e 's/\<run\>/myrun/g' \
-    -e 's/\<teardown\>/myteardown/g' \
-      $BATS_TEST_DIRNAME/../../libexec/bats-exec-test
+# fake resourcing a transcripted code See Makefile: make mybats-exec-test
 
-mysetup=NONE
-setup {
-  mysetup=OK
+source mybats-exec-test
+mysetup_call=NONE
+
+setup() {
+  mysetup_call=NONE
 }
 
-@test "bats_test_begin" {
-  #BATS_TEST_DESCRIPTION="$1"
-  #if [ -n "$BATS_EXTENDED_SYNTAX" ]; then
-  #  echo "begin $BATS_TEST_NUMBER $BATS_TEST_DESCRIPTION" >&3
-  #fi
+mysetup() {
+  mysetup_call=OK
+}
+
+@test "bats_test_begin and setup" {
+  [[ "$BATS_TEST_DESCRIPTION" == "bats_test_begin and setup" ]]
+  MYBATS_TEST_DESCRIPTION=""
+  [[ -z "$MYBATS_TEST_DESCRIPTION" ]]
+  # not call by run, doesn't work to test global assignment
+  mybats_test_begin "BATS_TEST_DESCRIPTION" 33
+  [[ ! -z "$MYBATS_TEST_DESCRIPTION" ]]
+  [[ "$MYBATS_TEST_DESCRIPTION" == "BATS_TEST_DESCRIPTION" ]]
+  [[ "$mysetup_call" == "OK" ]]
 }
 
 @test "bats_test_function" {
+  MYBATS_TEST_NAMES=()
+  mybats_test_function "bats_test_function"
+  [[ ${#MYBATS_TEST_NAMES[@]} -eq 1 ]]
+  [[ ${MYBATS_TEST_NAMES[0]} ==  "bats_test_function" ]]
 }
 
 @test "bats_capture_stack_trace" {
