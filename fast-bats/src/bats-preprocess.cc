@@ -8,51 +8,6 @@
 
 using namespace std;
 
-bool is_utf8(const char * string)
-{
-    if (!string)
-        return true;
-
-    const unsigned char * bytes = (const unsigned char *)string;
-    int num;
-
-    while (*bytes != 0x00)
-    {
-        if ((*bytes & 0x80) == 0x00)
-        {
-            // U+0000 to U+007F
-            num = 1;
-        }
-        else if ((*bytes & 0xE0) == 0xC0)
-        {
-            // U+0080 to U+07FF
-            num = 2;
-        }
-        else if ((*bytes & 0xF0) == 0xE0)
-        {
-            // U+0800 to U+FFFF
-            num = 3;
-        }
-        else if ((*bytes & 0xF8) == 0xF0)
-        {
-            // U+10000 to U+10FFFF
-            num = 4;
-        }
-        else
-            return false;
-
-        bytes += 1;
-        for (int i = 1; i < num; ++i)
-        {
-            if ((*bytes & 0xC0) != 0x80)
-                return false;
-            bytes += 1;
-        }
-    }
-
-    return true;
-}
-
 enum type_param {
   in_string,
   none
@@ -150,9 +105,11 @@ public:
   Callable_func(const string&, ptr_param_func, bool);
 };
 
-Callable_func::Callable_func(const string &func_name,
+Callable_func::Callable_func(
+    const string &func_name,
     ptr_param_func func_ptr,
-    bool new_line = true) {
+    bool new_line = true)
+{
   this->func_name = func_name;
   this->func_ptr = func_ptr;
   this->new_line = new_line;
@@ -168,31 +125,145 @@ void init_callable()
   callable.push_back(Callable_func("preprocess", preprocess, false));
 }
 
+class Parsed_command
+{
+public:
+  vector<string> parsed;
+  Callable_func *func;
+
+  Parsed_command();
+  bool eof();
+};
+
+Parsed_command::Parsed_command()
+{
+  this->func = nullptr;
+}
+
+bool Parsed_command::eof() {
+  return this->parsed.size() == 0;
+}
+
+
+// from http://stackoverflow.com/questions/236129/split-a-string-in-c#236803
+template < class ContainerT >
+void tokenize(const std::string& str, ContainerT& tokens,
+              const std::string& delimiters = " ", bool trimEmpty = false)
+{
+   std::string::size_type pos, lastPos = 0, length = str.length();
+
+   using value_type = typename ContainerT::value_type;
+   using size_type  = typename ContainerT::size_type;
+
+   while(lastPos < length + 1)
+   {
+      pos = str.find_first_of(delimiters, lastPos);
+      if(pos == std::string::npos)
+      {
+         pos = length;
+      }
+
+      if(pos != lastPos || !trimEmpty)
+         tokens.push_back(value_type(str.data()+lastPos,
+               (size_type)pos-lastPos ));
+
+      lastPos = pos + 1;
+   }
+}
+
+Callable_func *find_func(const string &token)
+{
+  Callable_func *fp(nullptr);
+  // for taking a pointer we need to use ref
+  for(auto &f : callable)
+  {
+    if(f.func_name == token) {
+      fp = &f;
+      break;
+    }
+  }
+  return fp;
+}
+
+void read_command(Parsed_command &command)
+{
+  string line;
+  getline(cin, line);
+  command.parsed.clear();
+  tokenize(line, command.parsed, " ", true);
+}
+
+void eval(Parsed_command &command)
+{
+  for(auto t : command.parsed)
+  {
+    cout << "'" << t << "'";
+  }
+  cout << endl;
+
+  if(command.parsed.size() > 0) {
+    Callable_func *f = find_func(command.parsed[0]);
+
+    if(f) {
+      string param;
+
+      if(command.parsed.size() > 1) {
+        // to do join or keep or manage splited
+        param = command.parsed[1];
+      }
+
+      cout << f->func_ptr(param_func({in_string, (void*) &param}));
+      // by default we put a new_line here, for better function call display
+      if(f->new_line)
+        cout << endl;
+    }
+  }
+}
+
+void eval_loop() {
+  bool finished(false);
+  Parsed_command command;
+  while(not finished)
+  {
+    read_command(command);
+    if(command.eof())
+    {
+      finished = true;
+      break;
+    }
+    eval(command);
+    //cout << command;
+  }
+}
+
 int main(int argc, char **argv)
 {
   init_callable();
   if(argc > 1)
   {
-    bool found(false);
     string param;
 
     if(argc > 2) {
       param = argv[2];
     }
 
-    for(auto f : callable) {
-      if(f.func_name == argv[1]) {
-        cout << f.func_ptr(param_func({in_string, (void*) &param}));
-        // by default we put a new_line here, for better function call display
-        if(f.new_line)
-          cout << endl;
-        found = true;
-        break;
-      }
+    Callable_func *f(find_func(argv[1]));
+    if(f)
+    {
+      cout << f->func_ptr(param_func({in_string, (void*) &param}));
+      // by default we put a new_line here, for better function call display
+      if(f->new_line)
+        cout << endl;
     }
-
-    if(not found)
+    else
+    {
       cout << "unknown func: " << argv[1] << endl;
+    }
+  }
+  else
+  {
+    // read from stdin
+    eval_loop();
   }
   return 0;
 }
