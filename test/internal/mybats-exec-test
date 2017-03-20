@@ -70,6 +70,7 @@ mybats_test_function() {
   MYBATS_TEST_NAMES["${#MYBATS_TEST_NAMES[@]}"]="$test_name"
 }
 
+# called by mybats_debug_trap() on debug trap
 mybats_capture_stack_trace() {
   MYBATS_PREVIOUS_STACK_TRACE=( "${MYBATS_CURRENT_STACK_TRACE[@]}" )
   MYBATS_CURRENT_STACK_TRACE=()
@@ -179,6 +180,7 @@ mybats_strip_string() {
   printf "%s" "$string" | sed -e "s/^[ "$'\t'"]*//" -e "s/[ "$'\t'"]*$//"
 }
 
+# bats:export BATS_CWD="$(abs_dirname .)" defined by bats
 mybats_trim_filename() {
   local filename="$1"
   local length="${#MYBATS_CWD}"

@@ -32,31 +32,95 @@ mysetup() {
   [[ ${MYBATS_TEST_NAMES[0]} ==  "bats_test_function" ]]
 }
 
-@test "bats_capture_stack_trace" {
-}
+@test "bats_frame_filename" {
+  MYBATS_TEST_FILENAME=me
+  MYBATS_TEST_SOURCE=you
+  # caller displays:
+  # line number, subroutine name, and source filename
+  # corresponding to that position in the current execution call stack.
+  filename="/home/user/path/to/source.sh"
+  run mybats_frame_filename "33 some_dumy_func $filename"
 
-@test "bats_print_stack_trace" {
-}
+  [[ ! -z "$output" ]]
+  [[ "$output" == "$filename" ]]
 
-@test "bats_print_failed_command" {
+  # secial case filename == $MYBATS_TEST_SOURCE
+  run mybats_frame_filename "33 some_dumy_func $MYBATS_TEST_SOURCE"
+
+  [[ ! -z "$output" ]]
+  [[ "$output" == "$MYBATS_TEST_FILENAME" ]]
 }
 
 @test "bats_frame_lineno" {
+  lineno=33
+  run mybats_frame_lineno "$lineno some_dumy_func /dumy/filename"
+  [[ "$output" == "$lineno" ]]
 }
 
-@test "bats_frame_function" {
-}
-
-@test "bats_frame_filename" {
-}
-
-@test "bats_extract_line" {
-}
-
-@test "bats_strip_string" {
+@test "bats_capture_stack_trace" {
+  # silly test for now
+  MYBATS_CURRENT_STACK_TRACE=()
+  [[ -z "$MYBATS_SOURCE" ]]
+  [[ -z "$MYBATS_LINENO" ]]
+  mybats_capture_stack_trace
+  [[ -z "$output" ]]
+  echo "MYBATS_SOURCE=$MYBATS_SOURCE"
+  echo "MYBATS_LINENO=$MYBATS_LINENO"
+  echo "MYBATS_CURRENT_STACK_TRACE=${MYBATS_CURRENT_STACK_TRACE[@]}"
+  [[ ! -z "$MYBATS_SOURCE" ]]
+  [[ ! -z "$MYBATS_LINENO" ]]
+  [[ ${#MYBATS_CURRENT_STACK_TRACE[@]} -gt 1 ]]
 }
 
 @test "bats_trim_filename" {
+  MYBATS_CWD=$(readlink -f .)
+  run mybats_trim_filename inexistant
+  [[ "$output" == "inexistant" ]]
+  run mybats_trim_filename "$(readlink -f $BATS_TEST_FILENAME)"
+  echo "BATS_TEST_FILENAME=$BATS_TEST_FILENAME"
+  echo "output=$output"
+  [[ "$output" == "$(basename $BATS_TEST_FILENAME)" ]]
+  batsfilename="$(readlink -f ../../libexec/bats)"
+  run mybats_trim_filename "$batsfilename"
+  [[ "$output" == "$batsfilename" ]]
+}
+
+@test "bats_print_stack_trace" {
+  # not defined by bats-exec-test itself only in bats top wrapper
+  MYBATS_CWD=$(readlink -f .)
+  # get a stack trace un $MYBATS_CURRENT_STACK_TRACE
+  mybats_capture_stack_trace
+  [[ ${#MYBATS_CURRENT_STACK_TRACE[@]} -gt 1 ]]
+  #mybats_print_stack_trace "${MYBATS_CURRENT_STACK_TRACE[@]}" > log
+  run mybats_print_stack_trace "${MYBATS_CURRENT_STACK_TRACE[@]}"
+  [[ ! -z "$output" ]]
+}
+
+@test "bats_extract_line" {
+  run mybats_extract_line lineno.txt 10
+  [[ "$output" == "line10" ]]
+  run mybats_extract_line lineno.txt 3
+  [[ "$output" == "line3" ]]
+}
+
+@test "bats_strip_string" {
+  run mybats_strip_string $' \t some char here \t\t\t'
+  [[ "$output" == "some char here" ]]
+}
+
+@test "bats_print_failed_command" {
+  run mybats_print_failed_command "5 some_func lineno.txt"  2
+  echo "output=$output"
+  regexp="with status"
+  [[ "$output" =~ $regexp ]]
+  [[ "$output" =~ line5 ]]
+  # without status value == 1
+  run mybats_print_failed_command "4 some_func lineno.txt"  1
+  [[ ! "$output" =~ $regexp ]]
+  [[ "$output" =~ line4 ]]
+}
+
+@test "bats_frame_function" {
 }
 
 @test "bats_debug_trap" {
