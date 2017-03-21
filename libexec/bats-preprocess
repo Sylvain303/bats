@@ -4,7 +4,6 @@
 # fonctionnal test: ../test/internal/bats-preprocess.bats
 #
 # Usage: ./bats-preprocess < INUPT.bats > OUTPUT.sh
-set -e
 
 encode_name() {
   local name="$1"
@@ -60,5 +59,7 @@ main() {
 
 [[ $0 != "$BASH_SOURCE" ]] && sourced=1 || sourced=0
 if [[ $sourced -eq 0  ]] ; then 
-   main "$@"
+  # exit on fail
+  set -e
+  main "$@"
 fi
