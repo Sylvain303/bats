@@ -62,9 +62,13 @@ string preprocess(const param_func &p) {
   string line, quoted_name, name, encoded_name, body;
   stringstream output;
 
-
+  // can be terminated by sending a EOT character on STDIN
+  // echo -e "\004" > fast-bats_listening_pipe
+  // See: wrapper.sh
   while(getline(cin, line)) {
     ++index;
+    if(line == "\004") // EOT end of transmission
+      break;
 
     if(regex_match(line, m, pattern)) {
       quoted_name = m[1];
@@ -141,7 +145,8 @@ Parsed_command::Parsed_command()
 }
 
 bool Parsed_command::eof() {
-  return this->parsed.size() == 0;
+  return cin.eof();
+  //this->parsed.size() == 0;
 }
 
 
@@ -250,6 +255,7 @@ int main(int argc, char **argv)
     Callable_func *f(find_func(argv[1]));
     if(f)
     {
+      // call once with argument on command line
       cout << f->func_ptr(param_func({in_string, (void*) &param}));
       // by default we put a new_line here, for better function call display
       if(f->new_line)

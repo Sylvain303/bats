@@ -5,13 +5,20 @@
 
 source mybats-exec-test
 mysetup_call=NONE
+myteardown_call=NONE
 
 setup() {
   mysetup_call=NONE
+  myteardown_call=NONE
 }
 
 mysetup() {
   mysetup_call=OK
+}
+
+myteardown() {
+  myteardown_call=OK
+  echo called myteardown
 }
 
 @test "bats_test_begin and setup" {
@@ -55,6 +62,12 @@ mysetup() {
   lineno=33
   run mybats_frame_lineno "$lineno some_dumy_func /dumy/filename"
   [[ "$output" == "$lineno" ]]
+}
+
+@test "bats_frame_function" {
+  funcname=pipo_func
+  run mybats_frame_function "33 $funcname /dumy/filename"
+  [[ "$output" == "$funcname" ]]
 }
 
 @test "bats_capture_stack_trace" {
@@ -120,26 +133,78 @@ mysetup() {
   [[ "$output" =~ line4 ]]
 }
 
-@test "bats_frame_function" {
-}
-
 @test "bats_debug_trap" {
+  # in bash debug trap is called for every line of code executed by bash
+
+  # called on trap debug with $BASH_SOURCE as argument
+  # will call mybats_capture_stack_trace if we are not $BASH_SOURCE
+  [[ -z "$MYBATS_LINENO" ]]
+  # pass the filename where the current code leave
+  mybats_debug_trap mybats-exec-test
+  [[ -z "$MYBATS_LINENO" ]]
+  mybats_debug_trap some_dummy_filename
+  [[ ! -z "$MYBATS_LINENO" ]]
 }
 
 @test "bats_error_trap" {
-}
-
-@test "bats_teardown_trap" {
+  # collect MYBATS_ERROR_STATUS and MYBATS_ERROR_STACK_TRACE
+  # it also removes trap debug
+  # save current trap
+  run trap -p
+  debug_trap=$(echo "$output" | grep DEBUG)
+  echo "debug_trap=$debug_trap"
+  [[ "$output" =~ DEBUG ]]
+  [[ -z "$MYBATS_ERROR_STATUS" ]]
+  mybats_error_trap
+  run trap -p
+  [[ ! "$output" =~ DEBUG ]]
+  [[ ! -z "$MYBATS_ERROR_STATUS" ]]
 }
 
 @test "bats_exit_trap" {
+  # set by mybats_error_trap() or mybats_teardown_trap()
+  MYBATS_ERROR_STACK_TRACE=( $(caller) )
+	MYBATS_ERROR_STATUS=1
+  # set by mybats_init()
+  MYBATS_OUT=mybats.out
+  # set by mybats_teardown_trap()
+	MYBATS_TEARDOWN_COMPLETED=1
+  # set by myskip() or mybats_perform_test() (after the test)
+	MYBATS_TEST_COMPLETED=""
+  # set by mybats_test_begin()
+	MYBATS_TEST_DESCRIPTION="some description"
+  # set by mybats_perform_test() (singular)
+	MYBATS_TEST_NUMBER=23
+  # set by myskip() if any
+	MYBATS_TEST_SKIPPED=0
+
+  echo "$MYBATS_ERROR_STACK_TRACE"
+  false
 }
 
-@test "bats_perform_tests" {
+@test "bats_teardown_trap" {
+  # trup still in place for new test
+  run trap -p
+  debug_trap=$(echo "$output" | grep DEBUG)
+  echo "debug_trap=$debug_trap"
+  [[ "$output" =~ DEBUG ]]
+  # call myteardown() + mybats_exit_trap
+  # need to write myteardown output to MYBATS_OUT
+  MYBATS_OUT=mybats.out
+  [[ "$myteardown_call" == "NONE" ]]
+  mybats_teardown_trap
+  [[ "$myteardown_call" == "OK" ]]
+  [[ -s "$MYBATS_OUT" ]]
 }
 
 @test "bats_perform_test" {
+  # non recursive call for test a single @test
 }
+
+@test "bats_perform_tests" {
+  # recursive script call with extented argument
+}
+
 
 @test "bats_preprocess_source" {
 }
