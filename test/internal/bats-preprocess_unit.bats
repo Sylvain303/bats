@@ -3,7 +3,8 @@
 # internal function unittest
 source $BATS_TEST_DIRNAME/../../libexec/bats-preprocess
 
-cpp_encode_name="$BATS_TEST_DIRNAME/../../fast-bats/src/bats-preprocess encode_name"
+# binary must be compiled be running tests
+cpp_encode_name="$BATS_TEST_DIRNAME/../../fast-bats/src/fast-bats encode_name"
 
 tencode() {
   local cpp_out=$(eval "$cpp_encode_name \"$1\"")
