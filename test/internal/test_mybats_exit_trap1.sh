@@ -1,9 +1,6 @@
 #!/bin/bash
 # test for mybats_exit_trap
-
 source mybats-exec-test
-
-MYBATS_TEST_SKIPPED=1
 
 test_main() {
   #set -x
@@ -22,4 +19,4 @@ test_main() {
 
 # call our function
 test_main "$@"
-exit
+exit $?
