@@ -1,7 +1,14 @@
 #!/bin/bash
-
-# already sourced we are excuting ourself
-# fake resourcing a transcripted code See Makefile: make mybats-exec-test
+#
+# This bats file goal is to unittest functions in
+# ../../libexec/bats-exec-suite
+# as the file itself is exentsivly used to run this very test, we use a
+# fake resourcing a transcripted code.
+#
+# Most of the code is renamed bats_ to mybats_ also bats tools.
+#
+# See Makefile for details, not fulling working yet use commited file
+#    make mybats-exec-test
 
 source mybats-exec-test
 mysetup_call=NONE
@@ -162,27 +169,37 @@ myteardown() {
 }
 
 @test "bats_exit_trap" {
-  # set by mybats_error_trap() or mybats_teardown_trap()
-  MYBATS_ERROR_STACK_TRACE=( $(caller) )
-	MYBATS_ERROR_STATUS=1
-  # set by mybats_init()
-  MYBATS_OUT=mybats.out
-  # set by mybats_teardown_trap()
-	MYBATS_TEARDOWN_COMPLETED=1
-  # set by myskip() or mybats_perform_test() (after the test)
-	MYBATS_TEST_COMPLETED=""
-  # set by mybats_test_begin()
-	MYBATS_TEST_DESCRIPTION="some description"
-  # set by mybats_perform_test() (singular)
-	MYBATS_TEST_NUMBER=23
-  # set by myskip() if any
-	MYBATS_TEST_SKIPPED=0
+  ## set by mybats_error_trap() or mybats_teardown_trap()
+  #MYBATS_ERROR_STACK_TRACE=()
+	#MYBATS_ERROR_STATUS=1
+  ## set by mybats_init()
+  #MYBATS_OUT=mybats.out
+  ## set by mybats_teardown_trap()
+	#MYBATS_TEARDOWN_COMPLETED=1
+  ## set by myskip() or mybats_perform_test() (after the test)
+	#MYBATS_TEST_COMPLETED=""
+  ## set by mybats_test_begin()
+	#MYBATS_TEST_DESCRIPTION="some description"
+  ## set by mybats_perform_test() (singular)
+	#MYBATS_TEST_NUMBER=23
+  ## set by myskip() if any
+	#MYBATS_TEST_SKIPPED=0
 
-  echo "$MYBATS_ERROR_STACK_TRACE"
-  false
+  # mybats_exit_trap() displays test result and do some cleanup:
+  # if skiped display a skiped message
+
+  # test one skip test without explicit skip message
+  # we test:
+  #  echo "ok ${MYBATS_TEST_NUMBER}${skipped} ${MYBATS_TEST_DESCRIPTION}" >&3
+  #  status=0
+  run ./test_mybats_exit_trap1.sh 23 my_description
+  echo "n lines=${#lines[@]}, status=$status, '$output'"
+  [[ $status -eq 0 ]]
+  [[ "$output" == "ok 23 # myskip my_description" ]]
 }
 
 @test "bats_teardown_trap" {
+  skip "not working yet"
   # trup still in place for new test
   run trap -p
   debug_trap=$(echo "$output" | grep DEBUG)
@@ -214,4 +231,3 @@ myteardown() {
 
 @test "bats_evaluate_preprocessed_source" {
 }
-
