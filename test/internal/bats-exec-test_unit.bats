@@ -169,38 +169,52 @@ myteardown() {
 }
 
 @test "bats_exit_trap" {
-  ## set by mybats_error_trap() or mybats_teardown_trap()
-  #MYBATS_ERROR_STACK_TRACE=()
-	#MYBATS_ERROR_STATUS=1
-  ## set by mybats_init()
-  #MYBATS_OUT=mybats.out
-  ## set by mybats_teardown_trap()
-	#MYBATS_TEARDOWN_COMPLETED=1
-  ## set by myskip() or mybats_perform_test() (after the test)
-	#MYBATS_TEST_COMPLETED=""
-  ## set by mybats_test_begin()
-	#MYBATS_TEST_DESCRIPTION="some description"
-  ## set by mybats_perform_test() (singular)
-	#MYBATS_TEST_NUMBER=23
-  ## set by myskip() if any
-	#MYBATS_TEST_SKIPPED=0
+  # Some doc about globals:
+  #  # set by mybats_error_trap() or mybats_teardown_trap()
+  #  MYBATS_ERROR_STACK_TRACE=()
+	#  MYBATS_ERROR_STATUS=1
+  #  # set by mybats_init()
+  #  MYBATS_OUT=mybats.out
+  #  # set by mybats_teardown_trap()
+	#  MYBATS_TEARDOWN_COMPLETED=1
+  #  # set by myskip() or mybats_perform_test() (after the test)
+	#  MYBATS_TEST_COMPLETED=""
+  #  # set by mybats_test_begin()
+	#  MYBATS_TEST_DESCRIPTION="some description"
+  #  # set by mybats_perform_test() (singular)
+	#  MYBATS_TEST_NUMBER=23
+  #  # set by myskip() if any
+	#  MYBATS_TEST_SKIPPED=0
 
-  # mybats_exit_trap() displays test result and do some cleanup:
-  # if skiped display a skiped message
+  # mybats_exit_trap() displays test result and do some cleanup.
+  # We run outer script to ensure trap behavior isolation from bats itself.
 
-  # test one skip test without explicit skip message
-  # we test:
+  # skip + test without explicit skip message
+  # We test for this portion of code:
   #  echo "ok ${MYBATS_TEST_NUMBER}${skipped} ${MYBATS_TEST_DESCRIPTION}" >&3
   #  status=0
-  run ./test_mybats_exit_trap1.sh 23 my_description
-  echo "n lines=${#lines[@]}, status=$status, '$output'"
+  run ./test_mybats_exit_trap1.sh 23 my_description ""
+  echo "n lines=${#lines[@]}, status=$status, '$output' '${lines[1]}'"
   [[ $status -eq 0 ]]
-  [[ "$output" == "ok 23 # myskip my_description" ]]
+  [[ "${lines[1]}" == "ok 23 # myskip my_description" ]]
+
+  # skip + with explicit skip message
+  skip_message="my skip message"
+  run ./test_mybats_exit_trap1.sh 55 my_description "$skip_message"
+  echo "'$output'"
+  [[ $status -eq 0 ]]
+  [[ "${lines[1]}" == "ok 55 # myskip ($skip_message) my_description" ]]
+
+  # ensure $MYBATS_OUT removed
+  MYBATS_OUT=${lines[0]}
+  echo "MYBATS_OUT=$MYBATS_OUT"
+  echo $MYBATS_OUT
+  [[ -n "$MYBATS_OUT" && ! -e "$MYBATS_OUT" ]]
 }
 
 @test "bats_teardown_trap" {
   skip "not working yet"
-  # trup still in place for new test
+  # check trap still in place for new test
   run trap -p
   debug_trap=$(echo "$output" | grep DEBUG)
   echo "debug_trap=$debug_trap"

@@ -11,12 +11,15 @@ test_main() {
   MYBATS_TEARDOWN_COMPLETED=1
 	MYBATS_TEST_NUMBER=$1
   MYBATS_TEST_DESCRIPTION="$2"
-  touch $MYBATS_OUT
+  # create and pass MYBATS_OUT to caller via ${lines[0]}
+  basename "$0" > $MYBATS_OUT
+  echo $MYBATS_OUT
   # myskip will exit 0, we will never return
   # mybats_exit_trap will be called by the trap
-  myskip
+  myskip "$3"
 }
 
 # call our function
 test_main "$@"
-exit $?
+# never reached
+exit 234
