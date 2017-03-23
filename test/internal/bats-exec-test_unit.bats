@@ -10,7 +10,7 @@
 # See Makefile for details, not fulling working yet use commited file
 #    make mybats-exec-test
 
-source mybats-exec-test
+source $BATS_TEST_DIRNAME/mybats-exec-test
 mysetup_call=NONE
 myteardown_call=NONE
 
@@ -147,7 +147,7 @@ myteardown() {
   # will call mybats_capture_stack_trace if we are not $BASH_SOURCE
   [[ -z "$MYBATS_LINENO" ]]
   # pass the filename where the current code leave
-  mybats_debug_trap mybats-exec-test
+  mybats_debug_trap $BATS_TEST_DIRNAME/mybats-exec-test
   [[ -z "$MYBATS_LINENO" ]]
   mybats_debug_trap some_dummy_filename
   [[ ! -z "$MYBATS_LINENO" ]]
