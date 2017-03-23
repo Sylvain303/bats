@@ -329,18 +329,25 @@ bats_evaluate_preprocessed_source() {
   source "$BATS_TEST_SOURCE"
 }
 
-exec 3<&1
+main() {
+  exec 3<&1
 
-if [ "$#" -eq 0 ]; then
-  bats_preprocess_source
-  bats_evaluate_preprocessed_source
+  if [ "$#" -eq 0 ]; then
+    bats_preprocess_source
+    bats_evaluate_preprocessed_source
 
-  if [ -n "$BATS_COUNT_ONLY" ]; then
-    echo "${#BATS_TEST_NAMES[@]}"
+    if [ -n "$BATS_COUNT_ONLY" ]; then
+      echo "${#BATS_TEST_NAMES[@]}"
+    else
+      bats_perform_tests "${BATS_TEST_NAMES[@]}"
+    fi
   else
-    bats_perform_tests "${BATS_TEST_NAMES[@]}"
+    bats_evaluate_preprocessed_source
+    bats_perform_test "$@"
   fi
-else
-  bats_evaluate_preprocessed_source
-  bats_perform_test "$@"
+}
+
+[[ $0 != "$BASH_SOURCE" ]] && sourced=1 || sourced=0
+if [[ $sourced -eq 0  ]] ; then
+   main "$@"
 fi

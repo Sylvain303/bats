@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-set -e
+# preprocess bats source file STDIN into a bash runable script STDOUT
+# unittest: OK ../test/internal/bats-preprocess_unit.bats
+# fonctionnal test: ../test/internal/bats-preprocess.bats
+#
+# Usage: ./bats-preprocess < INUPT.bats > OUTPUT.sh
 
 encode_name() {
   local name="$1"
@@ -29,41 +33,50 @@ encode_name() {
   echo "$result"
 }
 
-tests=()
-index=${1:-0}
-test_pattern='^ *@test  *([^ ].*)  *\{ *(.*)$'
-include_pattern='^ *include  *(.+)$'
+bats_preprocess_main() {
+  tests=()
+  index=${1:-0}
+  test_pattern='^ *@test  *([^ ].*)  *\{ *(.*)$'
+  include_pattern='^ *include  *(.+)$'
 
-while IFS= read -r line; do
-  let index+=1
-  if [[ "$line" =~ $include_pattern ]]; then
-    name="${BASH_REMATCH[1]}"
+  while IFS= read -r line; do
+    let index+=1
+    if [[ "$line" =~ $include_pattern ]]; then
+      name="${BASH_REMATCH[1]}"
 
-    filename="$BATS_TEST_DIRNAME/${name}.bats"
-    if [ "${name:0:1}" = "/" ]; then
-      filename="${name}"
+      filename="$BATS_TEST_DIRNAME/${name}.bats"
+      if [ "${name:0:1}" = "/" ]; then
+        filename="${name}"
+      fi
+
+      [ -f "$filename" ] || {
+        echo "bats: $filename does not exist" >&2
+        exit 1
+      }
+
+      output="$($0 $index < "${filename}")"
+      let index+=$(echo "$output" | grep -c bats_test_begin)
+      echo "$output"
+    elif [[ "$line" =~ $test_pattern ]]; then
+      quoted_name="${BASH_REMATCH[1]}"
+      body="${BASH_REMATCH[2]}"
+      name="$(eval echo "$quoted_name")"
+      encoded_name="$(encode_name "$name")"
+      tests["${#tests[@]}"]="$encoded_name"
+      echo "${encoded_name}() { bats_test_begin ${quoted_name} ${index}; ${body}"
+    else
+      printf "%s\n" "$line"
     fi
+  done
 
-    [ -f "$filename" ] || {
-      echo "bats: $filename does not exist" >&2
-      exit 1
-    }
+  for test_name in "${tests[@]}"; do
+    echo "bats_test_function ${test_name}"
+  done
+}
 
-    output="$($0 $index < "${filename}")"
-    let index+=$(echo "$output" | grep -c bats_test_begin)
-    echo "$output"
-  elif [[ "$line" =~ $test_pattern ]]; then
-    quoted_name="${BASH_REMATCH[1]}"
-    body="${BASH_REMATCH[2]}"
-    name="$(eval echo "$quoted_name")"
-    encoded_name="$(encode_name "$name")"
-    tests["${#tests[@]}"]="$encoded_name"
-    echo "${encoded_name}() { bats_test_begin ${quoted_name} ${index}; ${body}"
-  else
-    printf "%s\n" "$line"
-  fi
-done
-
-for test_name in "${tests[@]}"; do
-  echo "bats_test_function ${test_name}"
-done
+[[ $0 != "$BASH_SOURCE" ]] && sourced=1 || sourced=0
+if [[ $sourced -eq 0  ]] ; then 
+  # exit on fail
+  set -e
+  bats_preprocess_main "$@"
+fi
