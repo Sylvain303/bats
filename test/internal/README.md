@@ -11,11 +11,16 @@ Proof of Concept: bats can test itself.
 Having a good code coverage, so starting hacking bats itself will be very easy
 and safe.
 
-At the end bats internal will be "documented" in unittests.
+When unittest will be written, bats internal will be "documented" in unittests.
 
 ## Status
 
 Partial draft.
+
+internal scripts under test:
+
+* bats-exec-test - in progress
+* bats-preprocess - **OK**
 
 ## How it works
 
@@ -27,6 +32,13 @@ Some file may be generated or left in this folder after test run.
 
 We perform small changes in bats `libexec/*` so a single script can be sourced
 as lib of function, in order to test it.
+
+ie:
+
+```
+# will not execute main code, only load function
+source libexec/bats-exec-test
+```
 
 ### Files already modified
 
@@ -45,10 +57,12 @@ as lib of function, in order to test it.
 * `mybats-exec-test` - handcrafted rewrite of bats-exec-test script (in
   progress)
 * `README.md` - this file
-* `test_mybats_exit_trap1.sh` - external file for testing named function (bash
-  code isolation)
+* `test_mybats_*.sh` - external file for testing named function (bash code isolation)
+* `test_helper.sh` - common helepers for external code
 
 ## Run
+
+In order to run thoses tests:
 
 ### Build
 
@@ -67,7 +81,7 @@ cd test/internal
 bats .
 ```
 
-must also works with this branch modified bats code:
+It must also work with this branch modified bats code:
 
 ```
 cd test/internal
