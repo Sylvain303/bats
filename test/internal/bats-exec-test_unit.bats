@@ -10,7 +10,7 @@
 # See Makefile for details, not fulling working yet use commited file
 #    make mybats-exec-test
 
-source mybats-exec-test
+source $BATS_TEST_DIRNAME/mybats-exec-test
 mysetup_call=NONE
 myteardown_call=NONE
 
@@ -147,7 +147,7 @@ myteardown() {
   # will call mybats_capture_stack_trace if we are not $BASH_SOURCE
   [[ -z "$MYBATS_LINENO" ]]
   # pass the filename where the current code leave
-  mybats_debug_trap mybats-exec-test
+  mybats_debug_trap $BATS_TEST_DIRNAME/mybats-exec-test
   [[ -z "$MYBATS_LINENO" ]]
   mybats_debug_trap some_dummy_filename
   [[ ! -z "$MYBATS_LINENO" ]]
@@ -169,7 +169,10 @@ myteardown() {
 }
 
 @test "bats_exit_trap" {
-  # Some doc about globals:
+  # ensure we are runing in our own directory
+  cd $BATS_TEST_DIRNAME
+
+  # Some doc about globals used in mybats_exit_trap
   #  # set by mybats_error_trap() or mybats_teardown_trap()
   #  MYBATS_ERROR_STACK_TRACE=()
 	#  MYBATS_ERROR_STATUS=1
@@ -189,12 +192,16 @@ myteardown() {
   # mybats_exit_trap() displays test result and do some cleanup.
   # We run outer script to ensure trap behavior isolation from bats itself.
 
+  # #################################### ok - no error or skiped
+  #
   # skip + test without explicit skip message
   # We test for this portion of code:
   #  echo "ok ${MYBATS_TEST_NUMBER}${skipped} ${MYBATS_TEST_DESCRIPTION}" >&3
   #  status=0
+
+  # the MYBATS_OUT filename is outputed on line1
   run ./test_mybats_exit_trap1.sh 23 my_description ""
-  echo "n lines=${#lines[@]}, status=$status, '$output' '${lines[1]}'"
+  echo "nb lines=${#lines[@]}, status=$status, '$output' '${lines[1]}'"
   [[ $status -eq 0 ]]
   [[ "${lines[1]}" == "ok 23 # myskip my_description" ]]
 
@@ -210,22 +217,72 @@ myteardown() {
   echo "MYBATS_OUT=$MYBATS_OUT"
   echo $MYBATS_OUT
   [[ -n "$MYBATS_OUT" && ! -e "$MYBATS_OUT" ]]
+
+  # #################################### not ok - some errors
+  # testing code:
+  #   echo "not ok $MYBATS_TEST_NUMBER $MYBATS_TEST_DESCRIPTION" >&3
+
+  # MYBATS_OUT and saved_MYBATS_OUT are outputed on line1 and line2
+  # so output starts at line3 (index 2)
+  number=76
+  description="some not ok description"
+  run ./test_mybats_exit_trap2.sh $number "$description"
+  echo "'${lines[2]}'"
+  echo "${lines[2]}" | grep "^not ok $number $description"
+  [[ $status -eq 1 ]]
+  [[ ${#lines[@]} -gt 3 ]]
+
+	# tests that the function output collected in MYBATS_OUT is outputed by:
+  #    sed -e "s/^/# /" < "$MYBATS_OUT" >&3
+  saved_MYBATS_OUT=${lines[1]}
+  ext_test_fname=$(cat $saved_MYBATS_OUT)
+  [[ -s "$saved_MYBATS_OUT" ]] && rm $saved_MYBATS_OUT
+  echo "${lines[-1]}" | grep -E "^# $ext_test_fname"
 }
 
 @test "bats_teardown_trap" {
-  skip "not working yet"
-  # check trap still in place for new test
+  cd $BATS_TEST_DIRNAME
+  # check trap in place
   run trap -p
-  debug_trap=$(echo "$output" | grep DEBUG)
-  echo "debug_trap=$debug_trap"
-  [[ "$output" =~ DEBUG ]]
-  # call myteardown() + mybats_exit_trap
-  # need to write myteardown output to MYBATS_OUT
-  MYBATS_OUT=mybats.out
-  [[ "$myteardown_call" == "NONE" ]]
-  mybats_teardown_trap
-  [[ "$myteardown_call" == "OK" ]]
-  [[ -s "$MYBATS_OUT" ]]
+  echo "$output" | grep -E 'DEBUG|EXIT|ERR'
+
+  # mybats_teardown_trap calls myteardown() + mybats_exit_trap
+  EXIT_STATUS=0
+  EXIT_STATUS_TEARDOWN=0
+  number=22
+  run ./test_mybats_teardown_trap.sh $number "some desc" \
+    $EXIT_STATUS $EXIT_STATUS_TEARDOWN
+  echo "${lines[1]}" | grep -E "^ok $number"
+  [[ $status -eq $EXIT_STATUS ]]
+  [[ ${#lines[@]} -eq 2 ]]
+
+  EXIT_STATUS=1
+  EXIT_STATUS_TEARDOWN=0
+  run ./test_mybats_teardown_trap.sh $number "some desc" \
+    $EXIT_STATUS $EXIT_STATUS_TEARDOWN
+  echo "${lines[1]}" | grep -E "^not ok $number"
+  [[ $status -eq $EXIT_STATUS ]]
+  echo "${lines[-1]}" | grep -E "^# myteardown $EXIT_STATUS_TEARDOWN"
+
+  EXIT_STATUS=0
+  EXIT_STATUS_TEARDOWN=1
+  run ./test_mybats_teardown_trap.sh $number "some desc" \
+    $EXIT_STATUS $EXIT_STATUS_TEARDOWN
+  echo "${lines[1]}" | grep -E "^not ok $number"
+  [[ $status -eq $EXIT_STATUS_TEARDOWN ]]
+  echo "${lines[-1]}" | grep -E "^# myteardown $EXIT_STATUS_TEARDOWN"
+
+  EXIT_STATUS=2
+  EXIT_STATUS_TEARDOWN=1
+  run ./test_mybats_teardown_trap.sh $number "some desc" \
+    $EXIT_STATUS $EXIT_STATUS_TEARDOWN
+  echo "${lines[1]}" | grep -E "^not ok $number"
+  [[ $status -eq $EXIT_STATUS_TEARDOWN ]]
+  echo "${lines[-1]}" | grep -E "^# myteardown $EXIT_STATUS_TEARDOWN"
+}
+
+@test "bats_init" {
+  # setup environment
 }
 
 @test "bats_perform_test" {
@@ -236,7 +293,6 @@ myteardown() {
   # recursive script call with extented argument
 }
 
-
 @test "bats_preprocess_source" {
 }
 
@@ -244,4 +300,7 @@ myteardown() {
 }
 
 @test "bats_evaluate_preprocessed_source" {
+}
+
+@test "main" {
 }
