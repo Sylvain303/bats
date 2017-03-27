@@ -1,7 +1,11 @@
 language: bash
-  os:
-  - linux
-  - osx
+os:
+- linux
+- osx
+
+before_script:
+  - bash --version
+  - pwd
 
 script: bin/bats --tap test
 
