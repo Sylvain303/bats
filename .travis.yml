@@ -1,7 +1,7 @@
 language: bash
-	os:
-		- linux
-		- osx
+  os:
+  - linux
+  - osx
 
 script: bin/bats --tap test
 
