@@ -8,7 +8,11 @@ cpp_encode_name="$BATS_TEST_DIRNAME/../../fast-bats/src/fast-bats encode_name"
 
 tencode() {
   local cpp_out=$(eval "$cpp_encode_name \"$1\"")
-  [[ "$(encode_name "$1")" == "test_$2" ]] && \
+
+  # encode_name optimized changed api, with printf -v 'into_var'
+  local encoded
+  encode_name "$1" 'encoded'
+  [[ "$encoded" == "test_$2" ]] && \
     [[ "$cpp_out" == "test_$2" ]]
   return $?
 }

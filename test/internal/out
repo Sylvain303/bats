@@ -7,10 +7,11 @@ BPP=../../libexec/bats-preprocess
 
 test_preprocess_myself() { bats_test_begin "preprocess myself" 8; 
   cat $BATS_TEST_FILENAME | $BPP > $tmp
+  echo $tmp
   diff -q $tmp out
 }
 
-test_dummy_test() { bats_test_begin "dummy test" 13; 
+test_dummy_test() { bats_test_begin "dummy test" 14; 
   echo ok
 }
 bats_test_function test_preprocess_myself

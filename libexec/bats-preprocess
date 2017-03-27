@@ -38,9 +38,9 @@ encode_name() {
 main() {
   local tests=()
   local index=0
-  local line body test_name index encoded_name
+  local line body test_name encoded_name
 
-  if [[ -z "BATS_TEST_PATTERN" ]] ; then
+  if [[ -z "$BATS_TEST_PATTERN" ]] ; then
     BATS_TEST_PATTERN='^ *@test +(.+) +\{ *(.*)$'
   fi
 
@@ -65,7 +65,7 @@ main() {
 }
 
 [[ $0 != "$BASH_SOURCE" ]] && sourced=1 || sourced=0
-if [[ $sourced -eq 0  ]] ; then 
+if [[ $sourced -eq 0  ]] ; then
   # exit on fail
   set -e
   main "$@"

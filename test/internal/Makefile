@@ -1,6 +1,6 @@
 BPP=../../libexec/bats-preprocess
 
-out: bats-preprocess.bats
+out: bats-preprocess.bats ${BPP}
 	${BPP} < bats-preprocess.bats > out
 
 
