@@ -1,5 +1,10 @@
-language: c
+language: bash
+	os:
+		- linux
+		- osx
+
 script: bin/bats --tap test
+
 notifications:
   email:
     on_success: never
