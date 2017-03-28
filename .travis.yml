@@ -1,5 +1,7 @@
 language: c
-script: bin/bats --tap test
+script:
+  - bin/bats --tap test
+  - cd test/internal/ && ../../bin/bats --tap .
 notifications:
   email:
     on_success: never
