@@ -281,6 +281,7 @@ mybats_perform_test() {
   fi
 }
 
+# usage: mybats_init "$@"
 mybats_init() {
   set -e
   set -E
@@ -342,6 +343,8 @@ mybats_evaluate_preprocessed_source() {
 }
 
 main() {
+  # TODO: check shift… and $#
+  mybats_init "$@"
   exec 3<&1
 
   if [ "$#" -eq 0 ]; then

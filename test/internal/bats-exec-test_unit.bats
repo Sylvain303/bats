@@ -283,6 +283,82 @@ myteardown() {
 
 @test "bats_init" {
   # setup environment
+
+  echo $BATS_TEST_FILENAME
+  # no run, we affect global vars
+  mybats_init "$BATS_TEST_FILENAME"
+
+  # test env setup
+  # + use TMPDIR
+  vars="
+  MYBATS_COUNT_ONLY
+  MYBATS_EXTENDED_SYNTAX
+  MYBATS_OUT
+  MYBATS_PARENT_TMPNAME
+  MYBATS_TEST_DIRNAME
+  MYBATS_TEST_FILENAME
+  MYBATS_TEST_NAMES
+  MYBATS_TMPDIR
+  MYBATS_TMPNAME
+  "
+
+  # example output:
+  # MYBATS_COUNT_ONLY=
+  # MYBATS_EXTENDED_SYNTAX=
+  # MYBATS_OUT=/tmp/bats.22622.out
+  # MYBATS_PARENT_TMPNAME=/tmp/bats.20962
+  # MYBATS_TEST_DIRNAME=/home/sylvain/code/bats/test/internal
+  # MYBATS_TEST_FILENAME=/home/sylvain/code/bats/test/internal/bats-exec-test_unit.bats
+  # MYBATS_TEST_NAMES=()
+  # MYBATS_TMPDIR=/tmp
+  # MYBATS_TMPNAME=/tmp/bats.22622
+
+  set | grep ^MYBATS_
+
+  for v in $vars
+  do
+    set | grep -q "^$v" || { echo "$v notfound" && exit 1; }
+  done
+
+	# count
+	mybats_init -c "$BATS_TEST_FILENAME"
+  [[ "$MYBATS_COUNT_ONLY" -eq 1 ]]
+  [[ "$MYBATS_TEST_FILENAME" == "$BATS_TEST_FILENAME" ]]
+
+  # extended
+	mybats_init -x "$BATS_TEST_FILENAME"
+  [[ "$MYBATS_EXTENDED_SYNTAX" == "-x" ]]
+  [[ "$MYBATS_TEST_FILENAME" == "$BATS_TEST_FILENAME" ]]
+
+  # usage:
+  run mybats_init
+  [[ $status -eq 1 ]]
+  [[ "$output" =~ filename ]]
+
+  # file not found
+  run mybats_init dummy
+  [[ $status -eq 1 ]]
+  echo "$output" | grep -E 'does not exist'
+
+  # dirname + tmp
+  mydirname=$(dirname "$BATS_TEST_FILENAME")
+  mybats_init "$BATS_TEST_FILENAME"
+  [[ "$MYBATS_TEST_DIRNAME" == "$BATS_TEST_DIRNAME" ]]
+  [[ "$MYBATS_TEST_DIRNAME" == "$mydirname" ]]
+  [[ "$MYBATS_TMPDIR" == "/tmp" ]]
+  echo "$MYBATS_TMPNAME" | grep -E '^/tmp'
+
+  export TMPDIR=/toto
+  mybats_init "$BATS_TEST_FILENAME"
+  [[ "$MYBATS_TEST_DIRNAME" == "$BATS_TEST_DIRNAME" ]]
+  [[ "$MYBATS_TMPDIR" == "$TMPDIR" ]]
+  echo "$MYBATS_TMPNAME" | grep -E "^$TMPDIR"
+
+  # TODO: ensure arguments count is 0 ("$#" in main)
+}
+
+@test "bats_evaluate_preprocessed_source" {
+  # generate preprocessed shell script
 }
 
 @test "bats_perform_test" {
@@ -297,9 +373,6 @@ myteardown() {
 }
 
 @test "bats_cleanup_preprocessed_source" {
-}
-
-@test "bats_evaluate_preprocessed_source" {
 }
 
 @test "main" {
