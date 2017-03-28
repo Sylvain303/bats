@@ -146,11 +146,13 @@ myteardown() {
   # called on trap debug with $BASH_SOURCE as argument
   # will call mybats_capture_stack_trace if we are not $BASH_SOURCE
   [[ -z "$MYBATS_LINENO" ]]
+
   # pass the filename where the current code leave
   mybats_debug_trap $BATS_TEST_DIRNAME/mybats-exec-test
   [[ -z "$MYBATS_LINENO" ]]
+
   mybats_debug_trap some_dummy_filename
-  [[ ! -z "$MYBATS_LINENO" ]]
+  [[ -n "$MYBATS_LINENO" ]]
 }
 
 @test "bats_error_trap" {
@@ -357,8 +359,18 @@ myteardown() {
   # TODO: ensure arguments count is 0 ("$#" in main)
 }
 
+@test "bats_preprocess_source" {
+  # generate preprocessed shell script in $MYBATS_TEST_SOURCE
+  # install trap
+
+  run trap -p
+  false
+  #debug_trap=$(echo "$output" | grep DEBUG)
+  #[[ "$output" =~ DEBUG ]]
+}
+
 @test "bats_evaluate_preprocessed_source" {
-  # generate preprocessed shell script
+  # source $MYBATS_TEST_SOURCE
 }
 
 @test "bats_perform_test" {
@@ -369,11 +381,14 @@ myteardown() {
   # recursive script call with extented argument
 }
 
-@test "bats_preprocess_source" {
-}
 
 @test "bats_cleanup_preprocessed_source" {
 }
 
 @test "main" {
 }
+
+# heplers
+# myrun
+# myskip - DONE? test_mybats_exit_trap1
+# myload
