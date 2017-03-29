@@ -370,14 +370,26 @@ myteardown() {
   [[ -s "$test_source" ]]
   [[ $(wc -l < "$test_source") -gt $(wc -l < "$BATS_TEST_FILENAME") ]]
   # syntax validation, no exec
-  bash -n "$test_source"
+  bash -n "${lines[0]}"
 
   # count traps
   n=$(echo "$output" | grep -c ^trap)
   [[ $n -eq 3 ]]
 
   # our trap called
-  echo "${lines[-1]}" | grep -E '^mybats_cleanup_preprocessed_source'
+  echo "${lines[-1]}" | grep -q -E '^mybats_cleanup_preprocessed_source'
+
+  # ensure it support DOS end-of-line removal
+  f=../fixtures/bats/dos_line.bats
+  run ./test_mybats_preprocess_source.sh "$BATS_LIBEXEC" "$f"
+  [[ $status -eq 0 ]]
+  test_source=${lines[0]}
+
+  if grep -q $'\r' $test_source
+  then
+    echo "some \\r in $test_source" && false
+  fi
+  rm $test_source
 }
 
 @test "bats_evaluate_preprocessed_source" {
