@@ -14,7 +14,7 @@ source mybats-exec-test
 
 # overwrite cleanup code
 mybats_cleanup_preprocessed_source() {
-  # won't remove anything
+  # won't remove anything, $MYBATS_TEST_SOURCE is left for the caller
   echo mybats_cleanup_preprocessed_source
 }
 
@@ -25,7 +25,11 @@ test_main() {
   export PATH="$1:$PATH"
   MYBATS_TEST_FILENAME=$2
   #echo $PATH
+
+  # run function (no display)
   mybats_preprocess_source
+
+  # generated filename
   echo $MYBATS_TEST_SOURCE
   trap -p
 

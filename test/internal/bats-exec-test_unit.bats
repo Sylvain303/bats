@@ -363,10 +363,21 @@ myteardown() {
   # generate preprocessed shell script in $MYBATS_TEST_SOURCE
   # install trap
 
-  run trap -p
-  false
-  #debug_trap=$(echo "$output" | grep DEBUG)
-  #[[ "$output" =~ DEBUG ]]
+  cd $BATS_TEST_DIRNAME
+  run ./test_mybats_preprocess_source.sh "$BATS_LIBEXEC" "$BATS_TEST_FILENAME"
+
+  test_source=${lines[0]}
+  [[ -s "$test_source" ]]
+  [[ $(wc -l < "$test_source") -gt $(wc -l < "$BATS_TEST_FILENAME") ]]
+  # syntax validation, no exec
+  bash -n "$test_source"
+
+  # count traps
+  n=$(echo "$output" | grep -c ^trap)
+  [[ $n -eq 3 ]]
+
+  # our trap called
+  echo "${lines[-1]}" | grep -E '^mybats_cleanup_preprocessed_source'
 }
 
 @test "bats_evaluate_preprocessed_source" {
