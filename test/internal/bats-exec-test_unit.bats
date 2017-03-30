@@ -369,8 +369,9 @@ myteardown() {
   test_source=${lines[0]}
   [[ -s "$test_source" ]]
   [[ $(wc -l < "$test_source") -gt $(wc -l < "$BATS_TEST_FILENAME") ]]
+
   # syntax validation, no exec
-  bash -n "${lines[0]}"
+  bash -n "$test_source"
 
   # count traps
   n=$(echo "$output" | grep -c ^trap)
@@ -389,11 +390,46 @@ myteardown() {
   then
     echo "some \\r in $test_source" && false
   fi
+
+  # lint again
+  bash -n $test_source
   rm $test_source
 }
 
 @test "bats_evaluate_preprocessed_source" {
-  # source $MYBATS_TEST_SOURCE
+  cd $BATS_TEST_DIRNAME
+  # mybats_evaluate_preprocessed_source does:
+  # sourcing $MYBATS_TEST_SOURCE or ${MYBATS_PARENT_TMPNAME}.src ??
+  # what is the usecase for sourcing MYBATS_PARENT_TMPNAME?
+
+  # generating a preprocessed file
+  f=../fixtures/bats/loop_keep_IFS.bats
+  run ./test_mybats_preprocess_source.sh "$BATS_LIBEXEC" "$f"
+  test_source=${lines[0]}
+  MYBATS_TMPNAME=${lines[1]}
+
+  [[ $status -eq 0 ]]
+  [[ -n "$MYBATS_TMPNAME" ]]
+  [[ ! -e "$MYBATS_TMPNAME" ]]
+  bash -n "$test_source"
+
+  # prepares call for mybats_evaluate_preprocessed_source
+  MYBATS_TEST_NAMES=()
+  MYBATS_TEST_SOURCE="$test_source"
+  # reformats output to call our mybats_ version
+  sed -i -e 's/^bats_/mybats_/' "$test_source"
+
+  # in current env (no run)
+  mybats_evaluate_preprocessed_source
+
+  echo "MYBATS_TEST_NAMES=${#MYBATS_TEST_NAMES[@]}"
+  [[ ${#MYBATS_TEST_NAMES[@]} -eq 1 ]]
+  [[ ${MYBATS_TEST_NAMES[0]} ==  "test_loop-2d5ffunc" ]]
+
+  # our test code is sourced
+  type -t loop_func | grep '^function'
+
+  rm "$test_source"
 }
 
 @test "bats_perform_test" {
