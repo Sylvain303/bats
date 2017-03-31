@@ -19,6 +19,15 @@ setup() {
   myteardown_call=NONE
 }
 
+teardown() {
+  local n=$(ls "$BATS_TMPDIR" | grep -E 'bats\.[0-9]+\.out$' | wc -l)
+  # rm -f $BATS_TMPDIR/bats.*.out
+  [[ $n -ne 0 ]] || {
+    echo "$BATS_TEST_DESCRIPTION $n"
+    false
+  }
+}
+
 mysetup() {
   mysetup_call=OK
 }
@@ -53,13 +62,13 @@ myteardown() {
   # line number, subroutine name, and source filename
   # corresponding to that position in the current execution call stack.
   filename="/home/user/path/to/source.sh"
-  run mybats_frame_filename "33 some_dumy_func $filename"
+  run mybats_frame_filename "33 some_dummy_func $filename"
 
   [[ ! -z "$output" ]]
   [[ "$output" == "$filename" ]]
 
   # secial case filename == $MYBATS_TEST_SOURCE
-  run mybats_frame_filename "33 some_dumy_func $MYBATS_TEST_SOURCE"
+  run mybats_frame_filename "33 some_dummy_func $MYBATS_TEST_SOURCE"
 
   [[ ! -z "$output" ]]
   [[ "$output" == "$MYBATS_TEST_FILENAME" ]]
@@ -67,13 +76,13 @@ myteardown() {
 
 @test "bats_frame_lineno" {
   lineno=33
-  run mybats_frame_lineno "$lineno some_dumy_func /dumy/filename"
+  run mybats_frame_lineno "$lineno some_dummy_func /dummy/filename"
   [[ "$output" == "$lineno" ]]
 }
 
 @test "bats_frame_function" {
   funcname=pipo_func
-  run mybats_frame_function "33 $funcname /dumy/filename"
+  run mybats_frame_function "33 $funcname /dummy/filename"
   [[ "$output" == "$funcname" ]]
 }
 
@@ -201,7 +210,7 @@ myteardown() {
   #  echo "ok ${MYBATS_TEST_NUMBER}${skipped} ${MYBATS_TEST_DESCRIPTION}" >&3
   #  status=0
 
-  # the MYBATS_OUT filename is outputed on line1
+  # the MYBATS_OUT filename is outputed on line0
   run ./test_mybats_exit_trap1.sh 23 my_description ""
   echo "nb lines=${#lines[@]}, status=$status, '$output' '${lines[1]}'"
   [[ $status -eq 0 ]]
@@ -219,6 +228,8 @@ myteardown() {
   echo "MYBATS_OUT=$MYBATS_OUT"
   echo $MYBATS_OUT
   [[ -n "$MYBATS_OUT" && ! -e "$MYBATS_OUT" ]]
+  echo $MYBATS_OUT | grep -E 'out$'
+
 
   # #################################### not ok - some errors
   # testing code:
@@ -432,16 +443,48 @@ myteardown() {
   rm "$test_source"
 }
 
+@test "bats_cleanup_preprocessed_source" {
+  cd $BATS_TEST_DIRNAME
+  MYBATS_TEST_SOURCE=tmp_some.$$
+
+  [[ $status -eq 0 ]]
+  echo "mybats_cleanup_preprocessed_source" > $MYBATS_TEST_SOURCE
+  [[ -s "$MYBATS_TEST_SOURCE" ]]
+  run mybats_cleanup_preprocessed_source
+  [[ ! -e "$MYBATS_TEST_SOURCE" ]]
+  [[ $status -eq 0 ]]
+  run mybats_cleanup_preprocessed_source
+  [[ $status -eq 0 ]]
+}
+
 @test "bats_perform_test" {
   # non recursive call for test a single @test
+  cd $BATS_TEST_DIRNAME
+
+  run ./test_mybats_perform_test.sh
+  [[ $status -eq 1 ]]
+
+  run ./test_mybats_perform_test.sh "dummy" "0"
+  echo "$output" | grep -E 'bats: unknown test name .dummy'
+  echo "$output" | grep -E '^our_exit_trap'
+
+  number=22
+  run ./test_mybats_perform_test.sh our_fake_func_true "$number"
+  [[ $status -eq 0 ]]
+  echo "${lines[-1]}" | grep -E "^ok $number"
+  echo "$output" | grep -E '^our_exit_linked_trap'
+
+  run ./test_mybats_perform_test.sh our_fake_func_false "$number"
+  [[ $status -eq 1 ]]
+  echo "$output" | grep -E "^not ok $number"
+
+  MYBATS_OUT=${lines[1]}
+  grep "our_fake_func_false" $MYBATS_OUT
+  rm -f /tmp/MYBATS_OUT.*
 }
 
 @test "bats_perform_tests" {
   # recursive script call with extented argument
-}
-
-
-@test "bats_cleanup_preprocessed_source" {
 }
 
 @test "main" {
