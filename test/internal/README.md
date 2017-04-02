@@ -1,12 +1,12 @@
 # bats internal unittest
 
-bats fonctional testing are done in `../bats.bats`, not here.
+`bats` functional testing are done in `../bats.bats`, not here.
 
 Here we do unit testing of bats internal.
 
 ## Goal
 
-Proof of Concept: bats can test itself.
+Proof of Concept: bats can tests itself.
 
 Having a good code coverage, so starting hacking bats itself will be very easy
 and safe.
@@ -19,7 +19,7 @@ Partial draft.
 
 internal scripts under test:
 
-* bats-exec-test - in progress
+* bats-exec-test - in progress - 97%
 * bats-preprocess - **OK**
 
 ## How it works
@@ -28,15 +28,15 @@ internal scripts under test:
 `*_unit.bats` reflect internal unit tests.
 `test_*.sh` external helpers to gain bash sub-script isolation.
 
-Some file may be generated or left in this folder after test run.
+Some files may be generated or left in this folder after test run.
 
 We perform small changes in bats `libexec/*` so a single script can be sourced
 as lib of function, in order to test it.
 
 ie:
 
-```
-# will not execute main code, only load function
+```bash
+# will not execute main code, only load functions
 source libexec/bats-exec-test
 ```
 
@@ -66,7 +66,8 @@ In order to run thoses tests:
 
 ### Build
 
-Building some symetrical rewring of bats internal script in order to test them.
+Building some symetrical rewriting of bats internal script in order to test
+them.
 
 Not working yet.
 ```
@@ -74,7 +75,9 @@ Not working yet.
 ```
 
 ### Run tests
-use a normal bats installation code to test itself:
+Use a normal bats installation code to test itself:
+
+(for now it runs only in its own folder)
 
 ```
 cd test/internal
