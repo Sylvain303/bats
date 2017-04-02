@@ -485,6 +485,38 @@ myteardown() {
 
 @test "bats_perform_tests" {
   # recursive script call with extented argument
+  cd $BATS_TEST_DIRNAME
+
+  # This is the "normal" path of calling the test. This function will call all
+  # test function @test one by one in a sub-shell recursively calling $?
+  # (bats-exec-test) with extra argument, so it will itself call
+  # bats_perform_test (singular).
+  # This way sub-shell creates an isolation level between each tests
+
+  MYBATS_TEST_NAMES=( one two three four )
+  n=${#MYBATS_TEST_NAMES[@]}
+  run ./test_mybats_perform_tests.sh no-rec "${MYBATS_TEST_NAMES[@]}"
+  echo "$output"
+  # tap line
+  echo "${lines[1]}" | grep "1..$n"
+  # same recusive number of call$
+  [[ $(echo "$output" | grep -c "call_id:") -eq $n ]]
+  # check distinct PID
+  nbids=$(echo "$output" | awk '/_id: [0-9]+/ {print $2}' | sort -n -u | wc -l)
+  [[ $nbids -eq $(($n + 1)) ]]
+
+  export MYBATS_EXTENDED_SYNTAX=-x
+  run ./test_mybats_perform_tests.sh no-rec "${MYBATS_TEST_NAMES[@]}"
+  echo "$output" | grep -E "\[4] \('-x'"
+
+  unset MYBATS_EXTENDED_SYNTAX
+  run ./test_mybats_perform_tests.sh no-rec "${MYBATS_TEST_NAMES[@]}"
+  echo "$output" | grep -E "\[3\]"
+
+  # test if MYBATS_TEST_FILENAME is correctly passed
+  export MYBATS_TEST_FILENAME=mytest_dummy_name
+  run ./test_mybats_perform_tests.sh no-rec "${MYBATS_TEST_NAMES[@]}"
+  echo "$output" | grep -E "'$MYBATS_TEST_FILENAME' '${MYBATS_TEST_NAMES[0]}"
 }
 
 @test "main" {
