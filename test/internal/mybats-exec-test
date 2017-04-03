@@ -64,7 +64,7 @@ mybats_test_begin() {
 }
 
 # append test_name to MYBATS_TEST_NAMES[] array
-# MYBATS_TEST_NAMES[] is initialized in mybats_init()
+# MYBATS_TEST_NAMES[] is initialized in mybats_main_test_exec()
 mybats_test_function() {
   local test_name="$1"
   MYBATS_TEST_NAMES["${#MYBATS_TEST_NAMES[@]}"]="$test_name"
@@ -281,8 +281,33 @@ mybats_perform_test() {
   fi
 }
 
-# usage: mybats_init "$@"
-mybats_init() {
+
+mybats_preprocess_source() {
+  MYBATS_TEST_SOURCE="${MYBATS_TMPNAME}.src"
+  { tr -d '\r' < "$MYBATS_TEST_FILENAME"; echo; } | bats-preprocess > "$MYBATS_TEST_SOURCE"
+  trap "mybats_cleanup_preprocessed_source" err exit
+  trap "mybats_cleanup_preprocessed_source; exit 1" int
+}
+
+mybats_cleanup_preprocessed_source() {
+  rm -f "$MYBATS_TEST_SOURCE"
+}
+
+mybats_evaluate_preprocessed_source() {
+  if [ -z "$MYBATS_TEST_SOURCE" ]; then
+    MYBATS_TEST_SOURCE="${MYBATS_PARENT_TMPNAME}.src"
+  fi
+  source "$MYBATS_TEST_SOURCE"
+}
+
+# call: mybats_main_test_exec "$@"
+mybats_main_test_exec() {
+  local init_only=false
+  if [[ "$1" == 'init_only' ]] ; then
+    init_only=true
+    shift
+  fi
+
   set -e
   set -E
   set -T
@@ -322,29 +347,13 @@ mybats_init() {
   MYBATS_TMPNAME="$MYBATS_TMPDIR/bats.$$"
   MYBATS_PARENT_TMPNAME="$MYBATS_TMPDIR/bats.$PPID"
   MYBATS_OUT="${MYBATS_TMPNAME}.out"
-}
 
-mybats_preprocess_source() {
-  MYBATS_TEST_SOURCE="${MYBATS_TMPNAME}.src"
-  { tr -d '\r' < "$MYBATS_TEST_FILENAME"; echo; } | bats-preprocess > "$MYBATS_TEST_SOURCE"
-  trap "mybats_cleanup_preprocessed_source" err exit
-  trap "mybats_cleanup_preprocessed_source; exit 1" int
-}
-
-mybats_cleanup_preprocessed_source() {
-  rm -f "$MYBATS_TEST_SOURCE"
-}
-
-mybats_evaluate_preprocessed_source() {
-  if [ -z "$MYBATS_TEST_SOURCE" ]; then
-    MYBATS_TEST_SOURCE="${MYBATS_PARENT_TMPNAME}.src"
+  if $init_only ; then
+    # we stop here for unittest
+    return 0
   fi
-  source "$MYBATS_TEST_SOURCE"
-}
 
-main() {
-  # TODO: check shift… and $#
-  mybats_init "$@"
+  # main execution branch 
   exec 3<&1
 
   if [ "$#" -eq 0 ]; then
@@ -364,5 +373,5 @@ main() {
 
 [[ $0 != "$BASH_SOURCE" ]] && sourced=1 || sourced=0
 if [[ $sourced -eq 0  ]] ; then
-   main "$@"
+   mybats_main_test_exec "$@"
 fi

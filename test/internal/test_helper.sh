@@ -22,7 +22,7 @@ create_MYBATS_OUT() {
 # Usage: init_test_env "$@"
 # you have to setup your own trap if any, none set by default
 init_test_env() {
-  mybats_init $0
+  mybats_main_test_exec init_only $0
   exec 3<&1
 	MYBATS_TEST_NUMBER=$1
   MYBATS_TEST_DESCRIPTION="$2"

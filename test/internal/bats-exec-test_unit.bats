@@ -183,11 +183,11 @@ myteardown() {
   # ensure we are runing in our own directory
   cd $BATS_TEST_DIRNAME
 
-  # Some doc about globals used in mybats_exit_trap
+  # Some doc about globals used in mybats_exit_trap:
   #  # set by mybats_error_trap() or mybats_teardown_trap()
   #  MYBATS_ERROR_STACK_TRACE=()
 	#  MYBATS_ERROR_STATUS=1
-  #  # set by mybats_init()
+  #  # set by bats_main_test_exec()
   #  MYBATS_OUT=mybats.out
   #  # set by mybats_teardown_trap()
 	#  MYBATS_TEARDOWN_COMPLETED=1
@@ -294,12 +294,12 @@ myteardown() {
   echo "${lines[-1]}" | grep -E "^# myteardown $EXIT_STATUS_TEARDOWN"
 }
 
-@test "bats_init" {
+@test "bats_main_test_exec (init_only)" {
   # setup environment
 
   echo $BATS_TEST_FILENAME
   # no run, we affect global vars
-  mybats_init "$BATS_TEST_FILENAME"
+  mybats_main_test_exec init_only "$BATS_TEST_FILENAME"
 
   # test env setup
   # + use TMPDIR
@@ -334,40 +334,38 @@ myteardown() {
   done
 
 	# count
-	mybats_init -c "$BATS_TEST_FILENAME"
+	mybats_main_test_exec init_only -c "$BATS_TEST_FILENAME"
   [[ "$MYBATS_COUNT_ONLY" -eq 1 ]]
   [[ "$MYBATS_TEST_FILENAME" == "$BATS_TEST_FILENAME" ]]
 
   # extended
-	mybats_init -x "$BATS_TEST_FILENAME"
+	mybats_main_test_exec init_only -x "$BATS_TEST_FILENAME"
   [[ "$MYBATS_EXTENDED_SYNTAX" == "-x" ]]
   [[ "$MYBATS_TEST_FILENAME" == "$BATS_TEST_FILENAME" ]]
 
   # usage:
-  run mybats_init
+  run mybats_main_test_exec init_only
   [[ $status -eq 1 ]]
   [[ "$output" =~ filename ]]
 
   # file not found
-  run mybats_init dummy
+  run mybats_main_test_exec init_only dummy
   [[ $status -eq 1 ]]
   echo "$output" | grep -E 'does not exist'
 
   # dirname + tmp
   mydirname=$(dirname "$BATS_TEST_FILENAME")
-  mybats_init "$BATS_TEST_FILENAME"
+  mybats_main_test_exec init_only "$BATS_TEST_FILENAME"
   [[ "$MYBATS_TEST_DIRNAME" == "$BATS_TEST_DIRNAME" ]]
   [[ "$MYBATS_TEST_DIRNAME" == "$mydirname" ]]
   [[ "$MYBATS_TMPDIR" == "/tmp" ]]
   echo "$MYBATS_TMPNAME" | grep -E '^/tmp'
 
   export TMPDIR=/toto
-  mybats_init "$BATS_TEST_FILENAME"
+  mybats_main_test_exec init_only "$BATS_TEST_FILENAME"
   [[ "$MYBATS_TEST_DIRNAME" == "$BATS_TEST_DIRNAME" ]]
   [[ "$MYBATS_TMPDIR" == "$TMPDIR" ]]
   echo "$MYBATS_TMPNAME" | grep -E "^$TMPDIR"
-
-  # TODO: ensure arguments count is 0 ("$#" in main)
 }
 
 @test "bats_preprocess_source" {
@@ -519,7 +517,7 @@ myteardown() {
   echo "$output" | grep -E "'$MYBATS_TEST_FILENAME' '${MYBATS_TEST_NAMES[0]}"
 }
 
-@test "main" {
+@test "bats_main_test_exec" {
 }
 
 # heplers
