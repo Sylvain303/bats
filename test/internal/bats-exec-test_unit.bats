@@ -518,9 +518,17 @@ myteardown() {
 }
 
 @test "bats_main_test_exec" {
+  # full code run
+  input=../fixtures/bats/loop_keep_IFS.bats
+  run ./test_mybats_main_test_exec.sh "$input"
+  [[ $status -eq 0 ]]
 }
 
 # heplers
-# myrun
-# myskip - DONE? test_mybats_exit_trap1
-# myload
+# myskip - DONE in test_mybats_exit_trap1.sh
+
+@test "helper: run" {
+}
+
+@test "helper: load" {
+}
