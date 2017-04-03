@@ -1,5 +1,5 @@
 #!/bin/bash
-batsdir=$(dirname $(readlink -f bats))
+batsdir=$(dirname $(readlink -f $(type -p bats)))
 echo $batsdir
 export PATH=$batsdir:$PATH
 
@@ -11,6 +11,8 @@ then
   echo "not found: '$in'"
   exit 2
 fi
+
+set -e
 
 out=$(mktemp)
 bats-preprocess < $in > $out
