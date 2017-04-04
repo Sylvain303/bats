@@ -35,5 +35,5 @@ else
   done
 fi
 
-echo sed "${SED_RULES[@]}" "$@" > log
+#echo sed "${SED_RULES[@]}" "$@" > log
 eval sed "${SED_RULES[@]}" "$@"
