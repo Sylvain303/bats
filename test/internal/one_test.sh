@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+# run a single test in a bats file
+#
+
 batsdir=$(dirname $(readlink -f $(type -p bats)))
 echo $batsdir
 export PATH=$batsdir:$PATH
