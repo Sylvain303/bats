@@ -4,7 +4,7 @@
 # NOTE: as BATS_ are rewritten MYBATS_ we rewrite official bats too.
 #
 # need to be run in the same directory
-# Usage: 
+# Usage:
 #   cd test/internal
 #   ./test_mybats_main_test_exec.sh TEST_FILENAME
 #
@@ -19,13 +19,12 @@ rename_function \
   orig_mybats_preprocess_source
 
 mybats_preprocess_source() {
-  orig_mybats_preprocess_source 
+  orig_mybats_preprocess_source
+  # edit in place
+  ./rewrite_bats_to_mybats.sh -i $MYBATS_TEST_SOURCE
   #local tmp=$(mktemp)
   #cp $MYBATS_TEST_SOURCE $tmp
   #echo "our: $? saved MYBATS_TEST_SOURCE $tmp"
-  # inplace
-  ./rewrite_bats_to_mybats.sh -i $MYBATS_TEST_SOURCE
-  #rm $tmp
 }
 
 test_main() {

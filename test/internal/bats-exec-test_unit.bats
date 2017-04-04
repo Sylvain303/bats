@@ -528,7 +528,9 @@ myteardown() {
 # myskip - DONE in test_mybats_exit_trap1.sh
 
 @test "helper: run" {
+  skip "not yet"
 }
 
 @test "helper: load" {
+  skip "not yet"
 }
