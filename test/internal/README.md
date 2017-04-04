@@ -2,11 +2,11 @@
 
 `bats` functional testing are done in `../bats.bats`, not here.
 
-Here we do unit testing of bats internal.
+Here, we do unit testing of bats internal.
 
 ## Goal
 
-Proof of Concept: bats can tests itself.
+Proof of Concept: bats can tests itself, at unit-test level.
 
 Having a good code coverage, so starting hacking bats itself will be very easy
 and safe.
@@ -19,7 +19,7 @@ Partial draft.
 
 internal scripts under test:
 
-* bats-exec-test - in progress - 97%
+* bats-exec-test - **OK**
 * bats-preprocess - **OK**
 
 ## How it works
@@ -40,11 +40,19 @@ ie:
 source libexec/bats-exec-test
 ```
 
-### Files already modified
+## Unit test concept
+
+Unittesting is testing at each function level. So we directly test internal API.
+It means that if a function API changes, related unittest need to be changed. It
+is diffrent from functionnal testing, where the external behavior is tested.
+
+In consequence, internal API change will need unittest to be changed or removed.
+
+### Bats files already modified
 
 * ~~bats~~
 * ~~bats-exec-suite~~
-* ~~bats-exec-test~~ - in progress See: mybats-exec-test
+* bats-exec-test - **OK**
 * ~~bats-format-tap-stream~~
 * bats-preprocess - **OK**
 
@@ -53,12 +61,12 @@ source libexec/bats-exec-test
 * `bats-preprocess.bats` - functionnal internal tool hacking test
 * `bats-preprocess_unit.bats`
 * `lineno.txt` - helper input to test internal function
-* `Makefile` - code generator rules (work in progress)
-* `mybats-exec-test` - handcrafted rewrite of bats-exec-test script (in
-  progress)
+* `Makefile` - code generator (built results are commited)
+* `mybats-exec-test` - See Makefile
 * `README.md` - this file
 * `test_mybats_*.sh` - external file for testing named function (bash code isolation)
 * `test_helper.sh` - common helepers for external code
+* `tools.bats` - tests `rewrite_bats_to_mybats.sh`
 
 ## Run
 
@@ -66,12 +74,12 @@ In order to run thoses tests:
 
 ### Build
 
-Building some symetrical rewriting of bats internal script in order to test
-them.
+Building some symetrical rewriting of bats internal script:
 
-Not working yet.
+when bats-exec-test is modified, you can rebuild it.
+
 ```
-# make mybats-exec-test
+make mybats-exec-test
 ```
 
 ### Run tests
