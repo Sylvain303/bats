@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-
-# ---------------------------------------------------------- healper
+# ---------------------------------------------------------- helpers
 myload() {
   local name="$1"
   local filename
@@ -180,7 +179,7 @@ mybats_strip_string() {
   printf "%s" "$string" | sed -e "s/^[ "$'\t'"]*//" -e "s/[ "$'\t'"]*$//"
 }
 
-# bats:export BATS_CWD="$(abs_dirname .)" defined by bats
+# bats:export MYBATS_CWD="$(abs_dirname .)" defined by bats
 mybats_trim_filename() {
   local filename="$1"
   local length="${#MYBATS_CWD}"
@@ -353,7 +352,7 @@ mybats_main_test_exec() {
     return 0
   fi
 
-  # main execution branch 
+  # main execution branch
   exec 3<&1
 
   if [ "$#" -eq 0 ]; then
