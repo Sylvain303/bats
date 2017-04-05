@@ -3,13 +3,22 @@
 # internal function unittest
 source $BATS_TEST_DIRNAME/../../libexec/bats-preprocess
 
-# binary must be compiled be running tests
-cpp_encode_name="$BATS_TEST_DIRNAME/../../fast-bats/src/fast-bats encode_name"
+#ENCODER_ALT=encorder_test.sh
+if [[ -e "$ENCODER_ALT" ]] ; then
+  source $ENCODER_ALT
+fi
+
+source $BATS_TEST_DIRNAME/../../libexec/bats-preprocess
 
 tencode() {
-  local cpp_out=$(eval "$cpp_encode_name \"$1\"")
-  [[ "$(encode_name "$1")" == "test_$2" ]] && \
-    [[ "$cpp_out" == "test_$2" ]]
+  if [[ -n "$CPP_ENCODE_NAME" ]] ; then
+    local cpp_out=$(eval "$cpp_encode_name \"$1\"")
+    [[ "$(encode_name "$1")" == "test_$2" ]] && \
+      [[ "$cpp_out" == "test_$2" ]]
+  else
+    [[ "$(encode_name "$1")" == "test_$2" ]]
+  fi
+
   return $?
 }
 
