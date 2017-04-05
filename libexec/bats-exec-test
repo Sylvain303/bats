@@ -1,34 +1,6 @@
 #!/usr/bin/env bash
-set -e
-set -E
-set -T
 
-BATS_COUNT_ONLY=""
-if [ "$1" = "-c" ]; then
-  BATS_COUNT_ONLY=1
-  shift
-fi
-
-BATS_EXTENDED_SYNTAX=""
-if [ "$1" = "-x" ]; then
-  BATS_EXTENDED_SYNTAX="$1"
-  shift
-fi
-
-BATS_TEST_FILENAME="$1"
-if [ -z "$BATS_TEST_FILENAME" ]; then
-  echo "usage: bats-exec <filename>" >&2
-  exit 1
-elif [ ! -f "$BATS_TEST_FILENAME" ]; then
-  echo "bats: $BATS_TEST_FILENAME does not exist" >&2
-  exit 1
-else
-  shift
-fi
-
-BATS_TEST_DIRNAME="$(dirname "$BATS_TEST_FILENAME")"
-BATS_TEST_NAMES=()
-
+# ---------------------------------------------------------- helpers
 load() {
   local name="$1"
   local filename
@@ -79,6 +51,9 @@ skip() {
   exit 0
 }
 
+# -------------------------------------------------- bats internal
+# store function's description string in BATS_TEST_DESCRIPTION
+# call setup()
 bats_test_begin() {
   BATS_TEST_DESCRIPTION="$1"
   if [ -n "$BATS_EXTENDED_SYNTAX" ]; then
@@ -87,11 +62,14 @@ bats_test_begin() {
   setup
 }
 
+# append test_name to BATS_TEST_NAMES[] array
+# BATS_TEST_NAMES[] is initialized in bats_main_test_exec()
 bats_test_function() {
   local test_name="$1"
   BATS_TEST_NAMES["${#BATS_TEST_NAMES[@]}"]="$test_name"
 }
 
+# called by bats_debug_trap() on debug trap
 bats_capture_stack_trace() {
   BATS_PREVIOUS_STACK_TRACE=( "${BATS_CURRENT_STACK_TRACE[@]}" )
   BATS_CURRENT_STACK_TRACE=()
@@ -201,6 +179,7 @@ bats_strip_string() {
   printf "%s" "$string" | sed -e "s/^[ "$'\t'"]*//" -e "s/[ "$'\t'"]*$//"
 }
 
+# bats:export BATS_CWD="$(abs_dirname .)" defined by bats
 bats_trim_filename() {
   local filename="$1"
   local length="${#BATS_CWD}"
@@ -301,15 +280,6 @@ bats_perform_test() {
   fi
 }
 
-if [ -z "$TMPDIR" ]; then
-  BATS_TMPDIR="/tmp"
-else
-  BATS_TMPDIR="${TMPDIR%/}"
-fi
-
-BATS_TMPNAME="$BATS_TMPDIR/bats.$$"
-BATS_PARENT_TMPNAME="$BATS_TMPDIR/bats.$PPID"
-BATS_OUT="${BATS_TMPNAME}.out"
 
 bats_preprocess_source() {
   BATS_TEST_SOURCE="${BATS_TMPNAME}.src"
@@ -329,18 +299,78 @@ bats_evaluate_preprocessed_source() {
   source "$BATS_TEST_SOURCE"
 }
 
-exec 3<&1
-
-if [ "$#" -eq 0 ]; then
-  bats_preprocess_source
-  bats_evaluate_preprocessed_source
-
-  if [ -n "$BATS_COUNT_ONLY" ]; then
-    echo "${#BATS_TEST_NAMES[@]}"
-  else
-    bats_perform_tests "${BATS_TEST_NAMES[@]}"
+# call: bats_main_test_exec "$@"
+bats_main_test_exec() {
+  local init_only=false
+  if [[ "$1" == 'init_only' ]] ; then
+    init_only=true
+    shift
   fi
-else
-  bats_evaluate_preprocessed_source
-  bats_perform_test "$@"
+
+  set -e
+  set -E
+  set -T
+
+  BATS_COUNT_ONLY=""
+  if [ "$1" = "-c" ]; then
+    BATS_COUNT_ONLY=1
+    shift
+  fi
+
+  BATS_EXTENDED_SYNTAX=""
+  if [ "$1" = "-x" ]; then
+    BATS_EXTENDED_SYNTAX="$1"
+    shift
+  fi
+
+  BATS_TEST_FILENAME="$1"
+  if [ -z "$BATS_TEST_FILENAME" ]; then
+    echo "usage: bats-exec <filename>" >&2
+    exit 1
+  elif [ ! -f "$BATS_TEST_FILENAME" ]; then
+    echo "bats: $BATS_TEST_FILENAME does not exist" >&2
+    exit 1
+  else
+    shift
+  fi
+
+  BATS_TEST_DIRNAME="$(dirname "$BATS_TEST_FILENAME")"
+  BATS_TEST_NAMES=()
+
+  if [ -z "$TMPDIR" ]; then
+    BATS_TMPDIR="/tmp"
+  else
+    BATS_TMPDIR="${TMPDIR%/}"
+  fi
+
+  BATS_TMPNAME="$BATS_TMPDIR/bats.$$"
+  BATS_PARENT_TMPNAME="$BATS_TMPDIR/bats.$PPID"
+  BATS_OUT="${BATS_TMPNAME}.out"
+
+  if $init_only ; then
+    # we stop here for unittest
+    return 0
+  fi
+
+  # main execution branch
+  exec 3<&1
+
+  if [ "$#" -eq 0 ]; then
+    bats_preprocess_source
+    bats_evaluate_preprocessed_source
+
+    if [ -n "$BATS_COUNT_ONLY" ]; then
+      echo "${#BATS_TEST_NAMES[@]}"
+    else
+      bats_perform_tests "${BATS_TEST_NAMES[@]}"
+    fi
+  else
+    bats_evaluate_preprocessed_source
+    bats_perform_test "$@"
+  fi
+}
+
+[[ $0 != "$BASH_SOURCE" ]] && sourced=1 || sourced=0
+if [[ $sourced -eq 0  ]] ; then
+   bats_main_test_exec "$@"
 fi

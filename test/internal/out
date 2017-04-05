@@ -1,0 +1,19 @@
+#!/bin/bash
+#
+# run make before if this code has changed
+#
+
+tmp=tmp-bats-preprocess
+BPP=../../libexec/bats-preprocess
+
+test_preprocess_myself() { bats_test_begin "preprocess myself" 9; 
+  cat $BATS_TEST_FILENAME | $BPP > $tmp
+  diff -q $tmp out
+  rm $tmp
+}
+
+test_dummy_test() { bats_test_begin "dummy test" 15; 
+  echo ok
+}
+bats_test_function test_preprocess_myself
+bats_test_function test_dummy_test
