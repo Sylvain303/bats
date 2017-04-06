@@ -2,6 +2,7 @@
 
 # internal function unittest
 source $BATS_TEST_DIRNAME/../../libexec/bats-preprocess
+cd $BATS_TEST_DIRNAME
 
 #ENCODER_ALT=encorder_test.sh
 if [[ -e "$ENCODER_ALT" ]] ; then

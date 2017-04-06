@@ -1,15 +1,13 @@
 #!/bin/bash
 #
-# run make before if this code has changed
+# run make before, if this code has changed
 #
 
-tmp=tmp-bats-preprocess
 BPP=../../libexec/bats-preprocess
+cd $BATS_TEST_DIRNAME
 
 @test "preprocess myself" {
-  cat $BATS_TEST_FILENAME | $BPP > $tmp
-  diff -q $tmp out
-  rm $tmp
+  diff -u <( $BPP < $BATS_TEST_FILENAME ) out
 }
 
 @test "dummy test" {

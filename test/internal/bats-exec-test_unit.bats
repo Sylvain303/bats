@@ -11,6 +11,7 @@
 #    make mybats-exec-test
 
 source $BATS_TEST_DIRNAME/mybats-exec-test
+cd $BATS_TEST_DIRNAME
 mysetup_call=NONE
 myteardown_call=NONE
 

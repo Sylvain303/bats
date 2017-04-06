@@ -4,7 +4,7 @@
 in='
 run something
 $BATS_SOME_VAR
-setup() 
+setup() some text here
 teardown()
 bats_func_call pipo
 '
