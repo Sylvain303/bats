@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -e
 
 version() {
   echo "Bats 0.4.0"
@@ -52,91 +51,108 @@ expand_path() {
   } || echo "$1"
 }
 
-BATS_LIBEXEC="$(abs_dirname "$0")"
-export BATS_PREFIX="$(abs_dirname "$BATS_LIBEXEC")"
-export BATS_CWD="$(abs_dirname .)"
-export PATH="$BATS_LIBEXEC:$PATH"
+bats_init_env() {
+  set -e
+  BATS_LIBEXEC="$(abs_dirname "$0")"
+  export BATS_PREFIX="$(abs_dirname "$BATS_LIBEXEC")"
+  export BATS_CWD="$(abs_dirname .)"
+  export PATH="$BATS_LIBEXEC:$PATH"
+}
 
-options=()
-arguments=()
-for arg in "$@"; do
-  if [ "${arg:0:1}" = "-" ]; then
-    if [ "${arg:1:1}" = "-" ]; then
-      options[${#options[*]}]="${arg:2}"
+process_args() {
+  options=()
+  ARGUMENTS=()
+  for arg in "$@"; do
+    if [ "${arg:0:1}" = "-" ]; then
+      if [ "${arg:1:1}" = "-" ]; then
+        options[${#options[*]}]="${arg:2}"
+      else
+        index=1
+        while option="${arg:$index:1}"; do
+          [ -n "$option" ] || break
+          options[${#options[*]}]="$option"
+          let index+=1
+        done
+      fi
     else
-      index=1
-      while option="${arg:$index:1}"; do
-        [ -n "$option" ] || break
-        options[${#options[*]}]="$option"
-        let index+=1
-      done
+      ARGUMENTS[${#ARGUMENTS[*]}]="$arg"
     fi
-  else
-    arguments[${#arguments[*]}]="$arg"
-  fi
-done
+  done
 
-unset count_flag pretty
-[ -t 0 ] && [ -t 1 ] && pretty="1"
-[ -n "$CI" ] && pretty=""
+  unset count_flag pretty
+  [ -t 0 ] && [ -t 1 ] && pretty="1"
+  [ -n "$CI" ] && pretty=""
 
-for option in "${options[@]}"; do
-  case "$option" in
-  "h" | "help" )
-    help
-    exit 0
-    ;;
-  "v" | "version" )
-    version
-    exit 0
-    ;;
-  "c" | "count" )
-    count_flag="-c"
-    ;;
-  "t" | "tap" )
-    pretty=""
-    ;;
-  "p" | "pretty" )
-    pretty="1"
-    ;;
-  * )
+  for option in "${options[@]}"; do
+    case "$option" in
+    "h" | "help" )
+      help
+      exit 0
+      ;;
+    "v" | "version" )
+      version
+      exit 0
+      ;;
+    "c" | "count" )
+      count_flag="-c"
+      ;;
+    "t" | "tap" )
+      pretty=""
+      ;;
+    "p" | "pretty" )
+      pretty="1"
+      ;;
+    * )
+      usage >&2
+      exit 1
+      ;;
+    esac
+  done
+
+  if [ "${#ARGUMENTS[@]}" -eq 0 ]; then
     usage >&2
     exit 1
-    ;;
-  esac
-done
-
-if [ "${#arguments[@]}" -eq 0 ]; then
-  usage >&2
-  exit 1
-fi
-
-filenames=()
-for filename in "${arguments[@]}"; do
-  if [ -d "$filename" ]; then
-    shopt -s nullglob
-    for suite_filename in "$(expand_path "$filename")"/*.bats; do
-      filenames["${#filenames[@]}"]="$suite_filename"
-    done
-    shopt -u nullglob
-  else
-    filenames["${#filenames[@]}"]="$(expand_path "$filename")"
   fi
-done
 
-if [ "${#filenames[@]}" -eq 1 ]; then
-  command="bats-exec-test"
-else
-  command="bats-exec-suite"
+  if [ -n "$pretty" ]; then
+    EXTENDED_SYNTAX_FLAG="-x"
+    FORMATTER="bats-format-tap-stream"
+  else
+    EXTENDED_SYNTAX_FLAG=""
+    FORMATTER="cat"
+  fi
+}
+
+process_filenames() {
+  FILENAMES=()
+  for filename in "${ARGUMENTS[@]}"; do
+    if [ -d "$filename" ]; then
+      shopt -s nullglob
+      for suite_filename in "$(expand_path "$filename")"/*.bats; do
+        FILENAMES["${#FILENAMES[@]}"]="$suite_filename"
+      done
+      shopt -u nullglob
+    else
+      FILENAMES["${#FILENAMES[@]}"]="$(expand_path "$filename")"
+    fi
+  done
+
+  if [ "${#FILENAMES[@]}" -eq 1 ]; then
+    COMMAND="bats-exec-test"
+  else
+    COMMAND="bats-exec-suite"
+  fi
+}
+
+bats_main() {
+  set -o pipefail execfail
+  exec "$COMMAND" $count_flag $EXTENDED_SYNTAX_FLAG \
+    "${FILENAMES[@]}" | "$FORMATTER"
+}
+
+if [[ "$0" == "$BASH_SOURCE" ]] ; then
+  bats_init_env
+  process_args "$@"
+  process_filenames
+  bats_main
 fi
-
-if [ -n "$pretty" ]; then
-  extended_syntax_flag="-x"
-  formatter="bats-format-tap-stream"
-else
-  extended_syntax_flag=""
-  formatter="cat"
-fi
-
-set -o pipefail execfail
-exec "$command" $count_flag $extended_syntax_flag "${filenames[@]}" | "$formatter"
